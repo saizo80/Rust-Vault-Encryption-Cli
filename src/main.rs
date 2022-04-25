@@ -1,34 +1,29 @@
 /*
-Encode Walk
+Vault Encrypt
 Written by Matthew Thornton
-April 16 2022
+April 24 2022
 
-Terminal tool for encrypting/decrypting files, either single, in folders
-or recursively in a tree of folders.
 */
 #![allow(dead_code)]
 #![allow(unused_variables)]
 // import functions from file
 mod functions;
-use rand::{rngs::OsRng, RngCore};
+use zeroize::Zeroize;
+use anyhow::anyhow;
 
-fn main() {
-    let path_to_encrypt: String = functions::get_input();
-    //let mut path_to_encrypt: String = String::from("'/Users/olympia/Downloads/Nextcloud-backup-codes.txt'");
+fn main() -> Result<(), anyhow::Error> {
+    let file = functions::get_input();
+    let mut password = functions::get_password_input();
 
-    // Collect to vector
-    let mut path_vector = path_to_encrypt.split("/").collect::<Vec<_>>();
+    if file.ends_with(".encrypted") {
+        let dist = file.strip_suffix(".encrypted").unwrap().to_string() + ".decrypted";
+        functions::decrypt_file(&file, &dist, &password)?;
+    }
+    else {
+        let dist = format!("{}.encrypted", &file);
+        functions::encrypt_file(&file, &dist, &password)?;
+    }
 
-    // remove any empty items in the vector
-    path_vector.retain(|value| *value != "");
-
-    let file_to_encrypt = &path_vector[&path_vector.len()-1];
-    let mut key = [0u8; 32];
-    let mut nonce = [0u8; 24];
-    OsRng.fill_bytes(&mut key);
-    OsRng.fill_bytes(&mut nonce);
-
-    functions::encrypt_small_file(format!("/{}", path_vector.join("/"))
-        ,format!("/{}.binff", path_vector.join("/"))
-        ,&key, &nonce).ok();
+    password.zeroize();
+    Ok(())
 }
