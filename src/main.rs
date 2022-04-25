@@ -9,7 +9,6 @@ April 24 2022
 // import functions from file
 mod functions;
 use zeroize::Zeroize;
-use anyhow::anyhow;
 
 fn main() -> Result<(), anyhow::Error> {
     let file = functions::get_input();

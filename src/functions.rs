@@ -1,12 +1,10 @@
-use std::fs;
 use anyhow::anyhow;
 use chacha20poly1305::{
-    aead::{stream, Aead, NewAead},
+    aead::{stream, NewAead},
     XChaCha20Poly1305,
 };
 use rand::{rngs::OsRng, RngCore};
 use std::{
-    env,
     fs::File,
     io::{Read, Write},
 };
@@ -27,6 +25,7 @@ pub fn get_input() -> String {
 fn clean_input(mut input: String) -> String {
     // * Remove the first and last characters if they are ' (macos)
     if let Some('\'')=input.chars().next_back() {input.pop();}
+    if let Some(' ')=input.chars().next_back() {input.pop();}
     if let Some('\'')=input.chars().next() {input.remove(0);}
     return input;
 }
