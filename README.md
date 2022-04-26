@@ -2,7 +2,7 @@
 Roadmap:
 - [x] Write functions for encrypting and decrypting files  
 ↓
-- [ ] Encrypt/Decrypt Folder  
+- [x] Encrypt/Decrypt Folder  
 ↓
 - [ ] Encrypt/Decrypt Recursively  
 ↓

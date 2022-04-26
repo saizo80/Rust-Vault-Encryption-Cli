@@ -5,6 +5,7 @@ use chacha20poly1305::{
 };
 use rand::{rngs::OsRng, RngCore};
 use std::{
+    fs,
     fs::File,
     io::{Read, Write},
 };
@@ -17,13 +18,15 @@ pub fn get_input() -> String {
     println!("Enter a filepath: ");
     std::io::stdin().read_line(&mut line).unwrap();
     println!();
-    if let Some('\n')=line.chars().next_back() {line.pop();}
-    if let Some('\r')=line.chars().next_back() {line.pop();}
     return clean_input(line);
 }
 
 fn clean_input(mut input: String) -> String {
-    // * Remove the first and last characters if they are ' (macos)
+    // * Remove carriage return characters
+    if let Some('\n')=input.chars().next_back() {input.pop();}
+    if let Some('\r')=input.chars().next_back() {input.pop();}
+
+    // * Remove the first and last characters if they are ' or whitespace (macos)
     if let Some('\'')=input.chars().next_back() {input.pop();}
     if let Some(' ')=input.chars().next_back() {input.pop();}
     if let Some('\'')=input.chars().next() {input.remove(0);}
@@ -41,8 +44,8 @@ fn argon2_config<'a>() -> argon2::Config<'a> {
     };
 }
 
-pub fn password_to_key() -> Result<Vec<u8>, argon2::Error>{
-    let password = "password";
+/* Possibly unusable code (cannot easily return salt) - wait to delete
+pub fn password_to_key(password: String) -> Result<Vec<u8>, argon2::Error>{
     let mut salt = [0u8; 32];
     OsRng.fill_bytes(&mut salt);
 
@@ -50,6 +53,15 @@ pub fn password_to_key() -> Result<Vec<u8>, argon2::Error>{
     let key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config);
     return key;
 }
+
+pub fn password_to_key_known_salt(password: String, mut salt: [u8; 32]) -> Result<Vec<u8>, argon2::Error>{
+    OsRng.fill_bytes(&mut salt);
+
+    let argon2_config = argon2_config();
+    let key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config);
+    return key;
+}
+*/
 
 pub fn get_password_input() -> String {
     return rpassword::prompt_password_stdout("Enter password: ").unwrap();
@@ -131,12 +143,12 @@ pub fn decrypt_file(
     let aead = XChaCha20Poly1305::new(key[..32].as_ref().into());
     let mut stream_decryptor = stream::DecryptorBE32::from_aead(aead, nonce.as_ref().into());
 
-    let mut buffer = [0u8; BUFFER_LEN];
+    let mut buffer = [0u8; BUFFER_LEN+16];
 
     loop {
         let read_count = encrypted_file.read(&mut buffer)?;
 
-        if read_count == BUFFER_LEN {
+        if read_count == BUFFER_LEN+16 {
             let plaintext = stream_decryptor
                 .decrypt_next(buffer.as_slice())
                 .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
@@ -158,4 +170,12 @@ pub fn decrypt_file(
     key.zeroize();
 
     Ok(())
+}
+
+pub fn check_file(path: &String) -> bool {
+    return fs::metadata(path).unwrap().file_type().is_file()
+}
+
+pub fn check_dir(path: &String) -> bool {
+    return fs::metadata(path).unwrap().file_type().is_dir()
 }
