@@ -17,13 +17,15 @@ pub fn get_input() -> String {
     println!("Enter a filepath: ");
     std::io::stdin().read_line(&mut line).unwrap();
     println!();
-    if let Some('\n')=line.chars().next_back() {line.pop();}
-    if let Some('\r')=line.chars().next_back() {line.pop();}
     return clean_input(line);
 }
 
 fn clean_input(mut input: String) -> String {
-    // * Remove the first and last characters if they are ' (macos)
+    // * Remove carriage return characters
+    if let Some('\n')=input.chars().next_back() {input.pop();}
+    if let Some('\r')=input.chars().next_back() {input.pop();}
+
+    // * Remove the first and last characters if they are ' or whitespace (macos)
     if let Some('\'')=input.chars().next_back() {input.pop();}
     if let Some(' ')=input.chars().next_back() {input.pop();}
     if let Some('\'')=input.chars().next() {input.remove(0);}
@@ -41,8 +43,8 @@ fn argon2_config<'a>() -> argon2::Config<'a> {
     };
 }
 
-pub fn password_to_key() -> Result<Vec<u8>, argon2::Error>{
-    let password = "password";
+/* Possibly unusable code (cannot easily return salt) - wait to delete
+pub fn password_to_key(password: String) -> Result<Vec<u8>, argon2::Error>{
     let mut salt = [0u8; 32];
     OsRng.fill_bytes(&mut salt);
 
@@ -50,6 +52,15 @@ pub fn password_to_key() -> Result<Vec<u8>, argon2::Error>{
     let key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config);
     return key;
 }
+
+pub fn password_to_key_known_salt(password: String, mut salt: [u8; 32]) -> Result<Vec<u8>, argon2::Error>{
+    OsRng.fill_bytes(&mut salt);
+
+    let argon2_config = argon2_config();
+    let key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config);
+    return key;
+}
+*/
 
 pub fn get_password_input() -> String {
     return rpassword::prompt_password_stdout("Enter password: ").unwrap();
