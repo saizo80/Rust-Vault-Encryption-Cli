@@ -1,17 +1,17 @@
 # Vault Encryption
 Roadmap:
-- [x] Write functions for encrypting and decrypting files
+- [x] Write functions for encrypting and decrypting files  
 ↓
-- [ ] Encrypt/Decrypt Folder
+- [ ] Encrypt/Decrypt Folder  
 ↓
-- [ ] Encrypt/Decrypt Recursively
+- [ ] Encrypt/Decrypt Recursively  
 ↓
-- [ ] Encrypt/Decrypt Filenames
+- [ ] Encrypt/Decrypt Filenames  
 ↓
-- [ ] Encrypt/Decrypt Foldernames
+- [ ] Encrypt/Decrypt Foldernames  
 ↓
-- [ ] Save keys in password encrypted file
+- [ ] Save keys in password encrypted file  
 ↓
-- [ ] Mounting filesystem
+- [ ] Mounting filesystem  
 ↓
-- [ ] Instant Encryption/Decryption of filesystem
+- [ ] Instant Encryption/Decryption of filesystem  
