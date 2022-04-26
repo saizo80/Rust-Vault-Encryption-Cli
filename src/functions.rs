@@ -143,12 +143,12 @@ pub fn decrypt_file(
     let aead = XChaCha20Poly1305::new(key[..32].as_ref().into());
     let mut stream_decryptor = stream::DecryptorBE32::from_aead(aead, nonce.as_ref().into());
 
-    let mut buffer = [0u8; BUFFER_LEN];
+    let mut buffer = [0u8; BUFFER_LEN+16];
 
     loop {
         let read_count = encrypted_file.read(&mut buffer)?;
 
-        if read_count == BUFFER_LEN {
+        if read_count == BUFFER_LEN+16 {
             let plaintext = stream_decryptor
                 .decrypt_next(buffer.as_slice())
                 .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
@@ -173,9 +173,9 @@ pub fn decrypt_file(
 }
 
 pub fn check_file(path: &String) -> bool {
-    return fs::metadata("/Users").unwrap().file_type().is_file()
+    return fs::metadata(path).unwrap().file_type().is_file()
 }
 
 pub fn check_dir(path: &String) -> bool {
-    return fs::metadata("/Users").unwrap().file_type().is_dir()
+    return fs::metadata(path).unwrap().file_type().is_dir()
 }
