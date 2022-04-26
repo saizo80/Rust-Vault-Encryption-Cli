@@ -5,6 +5,7 @@ use chacha20poly1305::{
 };
 use rand::{rngs::OsRng, RngCore};
 use std::{
+    fs,
     fs::File,
     io::{Read, Write},
 };
@@ -169,4 +170,12 @@ pub fn decrypt_file(
     key.zeroize();
 
     Ok(())
+}
+
+pub fn check_file(path: &String) -> bool {
+    return fs::metadata("/Users").unwrap().file_type().is_file()
+}
+
+pub fn check_dir(path: &String) -> bool {
+    return fs::metadata("/Users").unwrap().file_type().is_dir()
 }
