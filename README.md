@@ -4,7 +4,7 @@ Roadmap:
 ↓
 - [x] Encrypt/Decrypt Folder  
 ↓
-- [ ] Encrypt/Decrypt Recursively  
+- [x] Encrypt/Decrypt Recursively  
 ↓
 - [ ] Encrypt/Decrypt Filenames  
 ↓
