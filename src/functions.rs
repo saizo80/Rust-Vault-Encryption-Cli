@@ -108,6 +108,7 @@ pub fn encrypt_file(
             break;
         }
     }
+    fs::remove_file(source_file_path)?;
     salt.zeroize();
     nonce.zeroize();
     key.zeroize();
@@ -165,6 +166,7 @@ pub fn decrypt_file(
             break;
         }
     }
+    fs::remove_file(encrypted_file_path)?;
     salt.zeroize();
     nonce.zeroize();
     key.zeroize();

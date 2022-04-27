@@ -11,12 +11,12 @@ mod functions;
 use zeroize::Zeroize;
 use std::fs;
 
-fn DirRecur(path: &String, password: &String) -> Result<(), anyhow::Error> {
+fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
     let paths = fs::read_dir(path).unwrap();
         for path_inv in paths {
             let x = path_inv?.path().into_os_string().into_string().unwrap();
             if functions::check_dir(&x) {
-                DirRecur(&x, &password)?;
+                dir_recur(&x, &password)?;
             }
             else {
                 if x.ends_with(".encrypted") {
@@ -37,7 +37,7 @@ fn main() -> Result<(), anyhow::Error> {
     let mut password = functions::get_password_input();
 
     if functions::check_dir(&path) {
-        DirRecur(&path, &password)?;
+        dir_recur(&path, &password)?;
     }
     else {
         if path.ends_with(".encrypted") {
