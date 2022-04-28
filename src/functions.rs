@@ -1,8 +1,9 @@
 use anyhow::anyhow;
 use chacha20poly1305::{
-    aead::{stream, NewAead},
+    aead::{stream, Aead, NewAead, AeadInPlace},
     XChaCha20Poly1305,
 };
+use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 use rand::{rngs::OsRng, RngCore,};
 use std::{
     fs,
@@ -33,7 +34,7 @@ fn clean_input(mut input: String) -> String {
     return input;
 }
 
-fn argon2_config<'a>() -> argon2::Config<'a> {
+pub fn argon2_config<'a>() -> argon2::Config<'a> {
     return argon2::Config {
         variant: argon2::Variant::Argon2id,
         hash_length: 32,
@@ -44,27 +45,26 @@ fn argon2_config<'a>() -> argon2::Config<'a> {
     };
 }
 
-/* Possibly unusable code (cannot easily return salt) - wait to delete
-pub fn password_to_key(password: String) -> Result<Vec<u8>, argon2::Error>{
-    let mut salt = [0u8; 32];
-    OsRng.fill_bytes(&mut salt);
-
-    let argon2_config = argon2_config();
-    let key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config);
-    return key;
-}
-
-pub fn password_to_key_known_salt(password: String, mut salt: [u8; 32]) -> Result<Vec<u8>, argon2::Error>{
-    OsRng.fill_bytes(&mut salt);
-
-    let argon2_config = argon2_config();
-    let key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config);
-    return key;
-}
-*/
-
 pub fn get_password_input() -> String {
     return rpassword::prompt_password_stdout("Enter password: ").unwrap();
+}
+
+pub fn encrypt_filename(
+    source_file_path: &str,
+    key: &Vec<u8>,
+    nonce: &[u8; 24],
+) {
+    let mut split_path = source_file_path.split("/").collect::<Vec<&str>>();
+    let mut filename = split_path[split_path.len()-1];
+    let mut buffer: Vec<u8, 128> = Vec::new();
+    buffer.extend_from_slice(filename.as_bytes());
+    let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
+    let encrypted_filename = cipher.encrypt_in_place(&nonce, b"", &mut buffer).expect("encryption failure!");
+    let temp = std::str::from_utf8(&encrypted_filename).unwrap();
+    println!("{}", temp);
+    //split_path.pop();
+    //split_path.push(std::str::from_utf8(&encrypted_filename).unwrap());
+    
 }
 
 pub fn encrypt_file(
@@ -83,8 +83,10 @@ pub fn encrypt_file(
 
     let aead = XChaCha20Poly1305::new(key[..32].as_ref().into());
     let mut stream_encryptor = stream::EncryptorBE32::from_aead(aead, nonce.as_ref().into());
+    //encrypt_filename(&source_file_path, &key, &nonce);
 
     let mut source_file = File::open(source_file_path)?;
+    // call function to encrypt filename
     let mut dist_file = File::create(dist_file_path)?;
 
     dist_file.write(&salt)?;
@@ -125,6 +127,7 @@ pub fn decrypt_file(
     let mut nonce = [0u8; 19];
 
     let mut encrypted_file = File::open(encrypted_file_path)?;
+    // call function to decrypt filename
     let mut dist_file = File::create(dist)?;
 
     let mut read_count = encrypted_file.read(&mut salt)?;

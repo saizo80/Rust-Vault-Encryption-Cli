@@ -10,7 +10,11 @@ Roadmap:
 ↓
 - [ ] Encrypt/Decrypt Filenames  
 ↓
-- [ ] Encrypt/Decrypt Foldernames    
+- [ ] Encrypt/Decrypt Foldernames  
+↓
+- [ ] UX on launch  
+↓
+- [ ] Save paths to masterfiles and display  
 ↓
 - [ ] Mounting filesystem  
 ↓

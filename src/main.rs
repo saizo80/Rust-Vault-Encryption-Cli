@@ -16,6 +16,7 @@ use std::env;
 //use anyhow::anyhow;
 use shellexpand;
 use std::path::Path;
+use rand::{rngs::OsRng, RngCore,};
 
 fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
     let paths = fs::read_dir(path).unwrap();
@@ -40,6 +41,11 @@ fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+/// Check to see if the config file is present.
+/// If not, it will create it
+/// # Arguments
+/// * `config_path` string that points to the config file
+/// 
 fn check_config_file(config_path: &String) -> Result<(), anyhow::Error> {
     if !Path::new(&config_path).exists() {
         if !Path::new(&config_path.strip_suffix("/config").unwrap()).exists() {
@@ -53,9 +59,34 @@ fn check_config_file(config_path: &String) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+/*
+UX Intro 
+let args: Vec<String> = env::args().collect();
+let config_path = shellexpand::tilde("~/.rusty-vault/config").to_string();
+check_config_file(&config_path)?;
+*/
+
+/*
+Split String and Join Vec
+let path = String::from("/home/wsl/testing/test.txt");
+let mut test = path.split("/").collect::<Vec<&str>>();
+let mut filename = test[test.len()-1];
+test.pop();
+test.push("test.lol");
+let joined = test.join("/");
+*/
+
 fn main() -> Result<(), anyhow::Error> {
-    let args: Vec<String> = env::args().collect();
-    let config_path = shellexpand::tilde("~/.rusty-vault/config").to_string();
-    check_config_file(&config_path)?;
+    let argon2_config = functions::argon2_config();
+    let password = "password";
+    let path = "/home/wsl/testing/test.txt";
+
+    let mut salt = [0u8; 32];
+    let mut nonce = [0u8; 24];
+    OsRng.fill_bytes(&mut salt);
+    OsRng.fill_bytes(&mut nonce);
+
+    let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
+    functions::encrypt_filename(&path, &key, &nonce);
     Ok(())
 }
