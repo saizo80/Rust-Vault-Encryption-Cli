@@ -3,7 +3,7 @@ use chacha20poly1305::{
     aead::{stream, NewAead},
     XChaCha20Poly1305,
 };
-use rand::{rngs::OsRng, RngCore};
+use rand::{rngs::OsRng, RngCore,};
 use std::{
     fs,
     fs::File,

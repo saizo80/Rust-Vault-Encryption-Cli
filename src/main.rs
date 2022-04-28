@@ -6,10 +6,15 @@ April 24 2022
 */
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unused_must_use)]
 // import functions from file
 mod functions;
-use zeroize::Zeroize;
+mod masterfile;
+//use zeroize::Zeroize;
 use std::fs;
+use std::env;
+//use anyhow::anyhow;
+use shellexpand;
 
 fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
     let paths = fs::read_dir(path).unwrap();
@@ -19,13 +24,15 @@ fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
                 dir_recur(&x, &password)?;
             }
             else {
-                if x.ends_with(".encrypted") {
-                    let dist = x.strip_suffix(".encrypted").unwrap().to_string();
-                    functions::decrypt_file(&x, &dist, &password).ok();
-                }
-                else {
-                    let dist = format!("{}.encrypted", &x);
-                    functions::encrypt_file(&x, &dist, &password).ok();
+                if !x.ends_with("masterfile.e"){
+                    if x.ends_with(".encrypted") {
+                        let dist = x.strip_suffix(".encrypted").unwrap().to_string();
+                        functions::decrypt_file(&x, &dist, &password).ok();
+                    }
+                    else {
+                        let dist = format!("{}.encrypted", &x);
+                        functions::encrypt_file(&x, &dist, &password).ok();
+                    }
                 }
             }
         }
@@ -33,23 +40,11 @@ fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
 }
 
 fn main() -> Result<(), anyhow::Error> {
-    let path = functions::get_input();
-    let mut password = functions::get_password_input();
-
-    if functions::check_dir(&path) {
-        dir_recur(&path, &password)?;
-    }
-    else {
-        if path.ends_with(".encrypted") {
-            let dist = path.strip_suffix(".encrypted").unwrap().to_string();
-            functions::decrypt_file(&path, &dist, &password).ok();
-        }
-        else {
-            let dist = format!("{}.encrypted", &path);
-            functions::encrypt_file(&path, &dist, &password).ok();
-        }
-    }
-
-    password.zeroize();
+    let args: Vec<String> = env::args().collect();
+    let mut path: String = String::from("~/.rusty-vault");
+    let path_no_tilde = &path.remove(0);
+    let home = std::env::var("HOME").unwrap();
+    //assert_eq!(shellexpand::tilde(&path), format!("{}{}", home, path_no_tilde));
+    println!("{}", path_no_tilde);
     Ok(())
 }

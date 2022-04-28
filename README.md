@@ -6,7 +6,7 @@ Roadmap:
 ↓
 - [x] Encrypt/Decrypt Recursively  
 ↓
-- [ ] Save keys in password encrypted file
+- [x] Save keys in password encrypted file
 ↓
 - [ ] Encrypt/Decrypt Filenames  
 ↓
