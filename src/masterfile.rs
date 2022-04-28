@@ -62,8 +62,8 @@ pub fn create_masterfile(
 pub fn read_masterfile(path: &String, password: &String) -> ([u8; 32], [u8; 32], [u8; 19]) {
     /*
     TODO:
-        - move masterfile functions to seperate file
-        - read to ram and decrypt there rather than decrypting to file
+        - [x] move masterfile functions to seperate file
+        - [ ] read to ram and decrypt there rather than decrypting to file
     */
     // unencrypt with password here
     println!("{}", &path);
