@@ -15,6 +15,7 @@ use std::fs;
 use std::env;
 //use anyhow::anyhow;
 use shellexpand;
+use std::path::Path;
 
 fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
     let paths = fs::read_dir(path).unwrap();
@@ -39,12 +40,22 @@ fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+fn check_config_file(config_path: &String) -> Result<(), anyhow::Error> {
+    if !Path::new(&config_path).exists() {
+        if !Path::new(&config_path.strip_suffix("/config").unwrap()).exists() {
+            fs::create_dir(&config_path.strip_suffix("/config").unwrap());
+            fs::File::create(&config_path);
+        }
+        else {
+            fs::File::create(&config_path);
+        }
+    }
+    Ok(())
+}
+
 fn main() -> Result<(), anyhow::Error> {
     let args: Vec<String> = env::args().collect();
-    let mut path: String = String::from("~/.rusty-vault");
-    let path_no_tilde = &path.remove(0);
-    let home = std::env::var("HOME").unwrap();
-    //assert_eq!(shellexpand::tilde(&path), format!("{}{}", home, path_no_tilde));
-    println!("{}", path_no_tilde);
+    let config_path = shellexpand::tilde("~/.rusty-vault/config").to_string();
+    check_config_file(&config_path)?;
     Ok(())
 }
