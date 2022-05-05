@@ -8,7 +8,7 @@ Roadmap:
 ↓
 - [x] Save keys in password encrypted file  
 ↓
-- [ ] Encrypt/Decrypt Filenames  
+- [x] Encrypt/Decrypt Filenames  
 ↓
 - [ ] Encrypt/Decrypt Foldernames  
 ↓

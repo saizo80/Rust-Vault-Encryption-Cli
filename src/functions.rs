@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use chacha20poly1305::{
-    aead::{stream, Aead, NewAead, AeadInPlace},
+    aead::{stream, Aead, NewAead, AeadInPlace, generic_array::GenericArray},
     XChaCha20Poly1305,
 };
 use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
@@ -11,6 +11,7 @@ use std::{
     io::{Read, Write},
 };
 use zeroize::Zeroize;
+use hex;
 
 const BUFFER_LEN: usize = 500;
 
@@ -46,25 +47,76 @@ pub fn argon2_config<'a>() -> argon2::Config<'a> {
 }
 
 pub fn get_password_input() -> String {
-    return rpassword::prompt_password_stdout("Enter password: ").unwrap();
+    return rpassword::prompt_password("Enter password: ").unwrap();
 }
 
 pub fn encrypt_filename(
     source_file_path: &str,
     key: &Vec<u8>,
-    nonce: &[u8; 24],
-) {
+    nonce: &[u8; 19],
+) -> String {
+    let whole_nonce: [u8; 24] = {
+        let mut whole_nonce: [u8; 24] = [0; 24];
+        let (one, two) = whole_nonce.split_at_mut(nonce.len());
+        one.copy_from_slice(nonce);
+        two.copy_from_slice(b"00000");
+        whole_nonce
+    };
+
     let mut split_path = source_file_path.split("/").collect::<Vec<&str>>();
-    let mut filename = split_path[split_path.len()-1];
-    let mut buffer: Vec<u8, 128> = Vec::new();
-    buffer.extend_from_slice(filename.as_bytes());
-    let cipher = XChaCha20Poly1305::new(key[..32].as_ref().into());
-    let encrypted_filename = cipher.encrypt_in_place(&nonce, b"", &mut buffer).expect("encryption failure!");
-    let temp = std::str::from_utf8(&encrypted_filename).unwrap();
-    println!("{}", temp);
-    //split_path.pop();
-    //split_path.push(std::str::from_utf8(&encrypted_filename).unwrap());
+    let path_size = split_path.len();
+    let filename = split_path[path_size-1];
+
+    let key_ga = GenericArray::clone_from_slice(&key[..]);
+
+    let nonce_ga = GenericArray::clone_from_slice(&whole_nonce[..]);
+
+    let aead = XChaCha20Poly1305::new(&key_ga);
+
+    let encoded = aead.encrypt(&nonce_ga, filename.as_bytes().as_ref()).expect("Encryption failure");
+
+    let encoded_str = format!("{}.encrypted", hex::encode(encoded.clone()));
+    split_path[path_size-1] = &encoded_str;
+    /*
+    let temp_2 = hex::encode(temp.clone());
+    let temp_3 = hex::decode(temp_2.clone()).unwrap();
+    */
+    return split_path.join("/");
+}
+
+pub fn decrypt_filename(
+    encrypted_file_path: &str,
+    key: &Vec<u8>,
+    nonce: &[u8; 19],
+) -> String {
+    let whole_nonce: [u8; 24] = {
+        let mut whole_nonce: [u8; 24] = [0; 24];
+        let (one, two) = whole_nonce.split_at_mut(nonce.len());
+        one.copy_from_slice(nonce);
+        two.copy_from_slice(b"00000");
+        whole_nonce
+    };
+
+    let mut split_path = encrypted_file_path.split("/").collect::<Vec<&str>>();
+    let path_size = split_path.len();
+    let mut encrypted_filename = String::from(split_path[path_size-1]);
     
+    encrypted_filename.truncate(encrypted_filename.len()-10);
+    
+    let to_decrypt = hex::decode(encrypted_filename.clone()).unwrap();
+
+    let key_ga = GenericArray::clone_from_slice(&key[..]);
+
+    let nonce_ga = GenericArray::clone_from_slice(&whole_nonce[..]);
+
+    let aead = XChaCha20Poly1305::new(&key_ga);
+
+    let decoded = aead.decrypt(&nonce_ga, to_decrypt.as_ref()).expect("Encryption failure");
+
+    let decoded_str = std::str::from_utf8(&decoded).unwrap();
+    split_path[path_size-1] = &decoded_str;
+
+    return split_path.join("/");
 }
 
 pub fn encrypt_file(

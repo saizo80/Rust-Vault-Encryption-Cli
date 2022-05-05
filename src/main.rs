@@ -76,8 +76,9 @@ test.push("test.lol");
 let joined = test.join("/");
 */
 
-fn main() -> Result<(), anyhow::Error> {
-    let argon2_config = functions::argon2_config();
+/*
+filename encryption prep
+let argon2_config = functions::argon2_config();
     let password = "password";
     let path = "/home/wsl/testing/test.txt";
 
@@ -88,5 +89,24 @@ fn main() -> Result<(), anyhow::Error> {
 
     let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
     functions::encrypt_filename(&path, &key, &nonce);
+*/
+
+fn main() -> Result<(), anyhow::Error> {
+    let argon2_config = functions::argon2_config();
+    let password = "password";
+    let path = "/home/wsl/testing/test.txt";
+
+    let mut salt = [0u8; 32];
+    let mut nonce = [0u8; 19];
+    OsRng.fill_bytes(&mut salt);
+    OsRng.fill_bytes(&mut nonce);
+
+    let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
+    println!("{}",functions::decrypt_filename(
+        &functions::encrypt_filename(&path, &key, &nonce)[..],
+        &key,
+        &nonce,
+    ));
+    
     Ok(())
 }
