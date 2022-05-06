@@ -1,25 +1,29 @@
 use anyhow::anyhow;
 use chacha20poly1305::{
-    aead::{stream, Aead, NewAead, AeadInPlace, generic_array::GenericArray},
+    aead::{stream, Aead, NewAead, generic_array::GenericArray},
     XChaCha20Poly1305,
 };
-use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
+use chacha20poly1305;
 use rand::{rngs::OsRng, RngCore,};
 use std::{
     fs,
     fs::File,
-    io::{Read, Write},
+    io::{self, Read, Write, BufRead},
+    path::Path,
+    collections::HashMap,
 };
 use zeroize::Zeroize;
 use hex;
+use crate::{
+    encryptionFunctions,
+    masterfile,
+};
 
-const BUFFER_LEN: usize = 500;
-
-pub fn get_input() -> String {
+pub fn get_input(output: &str) -> String {
     let mut line = String::new();
-    println!("Enter a filepath: ");
+    println!("{} ", output);
     std::io::stdin().read_line(&mut line).unwrap();
-    println!();
+    //println!();
     return clean_input(line);
 }
 
@@ -46,187 +50,11 @@ pub fn argon2_config<'a>() -> argon2::Config<'a> {
     };
 }
 
-pub fn get_password_input() -> String {
-    return rpassword::prompt_password("Enter password: ").unwrap();
-}
-
-pub fn encrypt_filename(
-    source_file_path: &str,
-    key: &Vec<u8>,
-    nonce: &[u8; 19],
-) -> String {
-    let whole_nonce: [u8; 24] = {
-        let mut whole_nonce: [u8; 24] = [0; 24];
-        let (one, two) = whole_nonce.split_at_mut(nonce.len());
-        one.copy_from_slice(nonce);
-        two.copy_from_slice(b"00000");
-        whole_nonce
-    };
-
-    let mut split_path = source_file_path.split("/").collect::<Vec<&str>>();
-    let path_size = split_path.len();
-    let filename = split_path[path_size-1];
-
-    let key_ga = GenericArray::clone_from_slice(&key[..]);
-
-    let nonce_ga = GenericArray::clone_from_slice(&whole_nonce[..]);
-
-    let aead = XChaCha20Poly1305::new(&key_ga);
-
-    let encoded = aead.encrypt(&nonce_ga, filename.as_bytes().as_ref()).expect("Encryption failure");
-
-    let encoded_str = format!("{}.encrypted", hex::encode(encoded.clone()));
-    split_path[path_size-1] = &encoded_str;
+pub fn get_password_input(output: &str) -> String {
     /*
-    let temp_2 = hex::encode(temp.clone());
-    let temp_3 = hex::decode(temp_2.clone()).unwrap();
+    TODO: Double check password before returning
     */
-    return split_path.join("/");
-}
-
-pub fn decrypt_filename(
-    encrypted_file_path: &str,
-    key: &Vec<u8>,
-    nonce: &[u8; 19],
-) -> String {
-    let whole_nonce: [u8; 24] = {
-        let mut whole_nonce: [u8; 24] = [0; 24];
-        let (one, two) = whole_nonce.split_at_mut(nonce.len());
-        one.copy_from_slice(nonce);
-        two.copy_from_slice(b"00000");
-        whole_nonce
-    };
-
-    let mut split_path = encrypted_file_path.split("/").collect::<Vec<&str>>();
-    let path_size = split_path.len();
-    let mut encrypted_filename = String::from(split_path[path_size-1]);
-    
-    encrypted_filename.truncate(encrypted_filename.len()-10);
-    
-    let to_decrypt = hex::decode(encrypted_filename.clone()).unwrap();
-
-    let key_ga = GenericArray::clone_from_slice(&key[..]);
-
-    let nonce_ga = GenericArray::clone_from_slice(&whole_nonce[..]);
-
-    let aead = XChaCha20Poly1305::new(&key_ga);
-
-    let decoded = aead.decrypt(&nonce_ga, to_decrypt.as_ref()).expect("Encryption failure");
-
-    let decoded_str = std::str::from_utf8(&decoded).unwrap();
-    split_path[path_size-1] = &decoded_str;
-
-    return split_path.join("/");
-}
-
-pub fn encrypt_file(
-    source_file_path: &str,
-    dist_file_path: &str,
-    password: &str,
-) -> Result<(), anyhow::Error> {
-    let argon2_config = argon2_config();
-
-    let mut salt = [0u8; 32];
-    let mut nonce = [0u8; 19];
-    OsRng.fill_bytes(&mut salt);
-    OsRng.fill_bytes(&mut nonce);
-
-    let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
-
-    let aead = XChaCha20Poly1305::new(key[..32].as_ref().into());
-    let mut stream_encryptor = stream::EncryptorBE32::from_aead(aead, nonce.as_ref().into());
-    //encrypt_filename(&source_file_path, &key, &nonce);
-
-    let mut source_file = File::open(source_file_path)?;
-    // call function to encrypt filename
-    let mut dist_file = File::create(dist_file_path)?;
-
-    dist_file.write(&salt)?;
-    dist_file.write(&nonce)?;
-    
-    let mut buffer = [0u8; BUFFER_LEN];
-
-    loop {
-        let read_count = source_file.read(&mut buffer)?;
-
-        if read_count == BUFFER_LEN {
-            let ciphertext = stream_encryptor
-                .encrypt_next(buffer.as_slice())
-                .map_err(|err| anyhow!("Encrypting large file: {}", err))?;
-            dist_file.write(&ciphertext)?;
-        } else {
-            let ciphertext = stream_encryptor
-                .encrypt_last(&buffer[..read_count])
-                .map_err(|err| anyhow!("Encrypting large file: {}", err))?;
-            dist_file.write(&ciphertext)?;
-            break;
-        }
-    }
-    fs::remove_file(source_file_path)?;
-    salt.zeroize();
-    nonce.zeroize();
-    key.zeroize();
-
-    Ok(())
-}
-
-pub fn decrypt_file(
-    encrypted_file_path: &str,
-    dist: &str,
-    password: &str,
-) -> Result<(), anyhow::Error> {
-    let mut salt = [0u8; 32];
-    let mut nonce = [0u8; 19];
-
-    let mut encrypted_file = File::open(encrypted_file_path)?;
-    // call function to decrypt filename
-    let mut dist_file = File::create(dist)?;
-
-    let mut read_count = encrypted_file.read(&mut salt)?;
-    if read_count != salt.len() {
-        return Err(anyhow!("Error reading salt."));
-    }
-
-    read_count = encrypted_file.read(&mut nonce)?;
-    if read_count != nonce.len() {
-        return Err(anyhow!("Error reading nonce."));
-    }
-
-    let argon2_config = argon2_config();
-
-    let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
-
-    let aead = XChaCha20Poly1305::new(key[..32].as_ref().into());
-    let mut stream_decryptor = stream::DecryptorBE32::from_aead(aead, nonce.as_ref().into());
-
-    let mut buffer = [0u8; BUFFER_LEN+16];
-
-    loop {
-        let read_count = encrypted_file.read(&mut buffer)?;
-
-        if read_count == BUFFER_LEN+16 {
-            let plaintext = stream_decryptor
-                .decrypt_next(buffer.as_slice())
-                .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
-            dist_file.write(&plaintext)?;
-        } 
-        else if read_count == 0 {
-            break;
-        }
-        else {
-            let plaintext = stream_decryptor
-                .decrypt_last(&buffer[..read_count])
-                .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
-            dist_file.write(&plaintext)?;
-            break;
-        }
-    }
-    fs::remove_file(encrypted_file_path)?;
-    salt.zeroize();
-    nonce.zeroize();
-    key.zeroize();
-
-    Ok(())
+    return rpassword::prompt_password(output).unwrap();
 }
 
 pub fn check_file(path: &String) -> bool {
@@ -235,4 +63,124 @@ pub fn check_file(path: &String) -> bool {
 
 pub fn check_dir(path: &String) -> bool {
     return fs::metadata(path).unwrap().file_type().is_dir()
+}
+
+pub fn into_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
+    v.try_into()
+        .unwrap_or_else(|v: Vec<T>| panic!("Expected a Vec of length {} but it was {}", N, v.len()))
+}
+
+pub fn dir_recur(path: &String, password: &[u8; 32]) -> Result<(), anyhow::Error> {
+    let paths = fs::read_dir(path).unwrap();
+        for path_inv in paths {
+            let x = path_inv?.path().into_os_string().into_string().unwrap();
+            if check_dir(&x) {
+                dir_recur(&x, &password)?;
+            }
+            else {
+                if !x.ends_with("masterfile.e") && !x.ends_with(".DS_Store"){
+                    if x.ends_with(".encrypted") {
+                        let dist = x.strip_suffix(".encrypted").unwrap().to_string();
+                        encryptionFunctions::decrypt_file(&x, &password).ok();
+                    }
+                    else {
+                        let dist = format!("{}.encrypted", &x);
+                        encryptionFunctions::encrypt_file(&x, &password).ok();
+                    }
+                }
+            }
+        }
+    Ok(())
+}
+
+/// Check to see if the config file is present.
+/// If not, it will create it
+/// # Arguments
+/// - `config_path` string that points to the config file
+/// 
+pub fn check_config_file(config_path: &String) -> Result<(), anyhow::Error> {
+    if !Path::new(&config_path).exists() {
+        if !Path::new(&config_path.strip_suffix("/config").unwrap()).exists() {
+            fs::create_dir(&config_path.strip_suffix("/config").unwrap());
+            fs::File::create(&config_path);
+        }
+        else {
+            fs::File::create(&config_path);
+        }
+    }
+    Ok(())
+}
+
+// The output is wrapped in a Result to allow matching on errors
+// Returns an Iterator to the Reader of the lines of the file.
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path>, {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
+}
+
+pub fn read_config_file(config_path: &str) -> HashMap<String, String> {
+    let mut vaults: HashMap<String, String> = HashMap::new();
+    if let Ok(lines) = read_lines(config_path) {
+        for line in lines {
+            if let Ok(data) = line {
+                // data will be a string
+                // split by comma and enter into dict
+                let datal = data.split(",").collect::<Vec<&str>>();
+                if &datal.len() > &1 {
+                    vaults.insert(
+                        datal[0].to_string(),
+                        datal[1].to_string(),
+                    );
+                }
+            }
+        }
+    }
+    return vaults;
+}
+
+pub fn create_vault(
+    vaults: &mut HashMap<String, String>,
+    config_path: &String,
+) -> Result<(), anyhow::Error> {
+    // clear screen
+    print!("{}[2J", 27 as char);
+    println!("##Create Vault##");
+    // get all inputs
+    let path_to_create = get_input("Enter path for new vault: ");
+    let name = get_input("Enter name for new vault: ");
+    let password = get_password_input("Enter password for vault: ");
+
+    // create the masterfile with the password 
+    masterfile::create_masterfile(&path_to_create.to_string(), &password.to_string())?;
+
+    // open the config file and write the vault data
+    let mut config_file = fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(&config_path)?;
+    config_file.write_all(format!("{},{}/masterfile.e\n", name, path_to_create).as_bytes())?;
+    
+    // add new vault to the vaults hashmap
+    vaults.insert(name, path_to_create);
+    Ok(())
+}
+
+pub fn unlock_lock_vault(
+    masterfile_path: String
+) -> Result<(), anyhow::Error> {
+    // read in data from masterfile
+    let (master_key, folder_salt, folder_nonce) = 
+        masterfile::read_masterfile(&masterfile_path, 
+        &get_password_input("Enter vault password: "));
+    
+    // get directory to parse through
+    let mut top_dir = masterfile_path.split("/").collect::<Vec<&str>>();
+    top_dir.pop();
+    let top_dir_path = top_dir.join("/");
+    
+    // loop through folder tree and encrypt/decrypt
+    dir_recur(&top_dir_path, &master_key)?;
+    
+    Ok(())
 }

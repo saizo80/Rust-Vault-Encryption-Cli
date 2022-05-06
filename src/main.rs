@@ -7,106 +7,95 @@ April 24 2022
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_must_use)]
+#![allow(unused_assignments)]
+#![allow(unused_imports)]
+#![allow(non_snake_case)]
 // import functions from file
 mod functions;
 mod masterfile;
-//use zeroize::Zeroize;
-use std::fs;
-use std::env;
-//use anyhow::anyhow;
+mod encryptionFunctions;
+
+use zeroize::Zeroize;
+use std::{
+    fs, 
+    env,
+    path::Path,
+    fs::File,
+    io::{
+        self,
+        BufRead,
+        Write,
+    },
+    collections::HashMap,
+};
+use anyhow::anyhow;
 use shellexpand;
-use std::path::Path;
 use rand::{rngs::OsRng, RngCore,};
 
-fn dir_recur(path: &String, password: &String) -> Result<(), anyhow::Error> {
-    let paths = fs::read_dir(path).unwrap();
-        for path_inv in paths {
-            let x = path_inv?.path().into_os_string().into_string().unwrap();
-            if functions::check_dir(&x) {
-                dir_recur(&x, &password)?;
+fn main_menu(
+    mut vaults: HashMap<String, String>,
+    config_file: &String,
+) -> Result<(), anyhow::Error>{
+    loop {
+        print!("{}[2J", 27 as char);
+        println!("##Rusty Vault##");
+        if vaults.len() > 0 {
+            let input: String = functions::get_input(&format!("[1] Lock/Unlock Vault
+[2] Create Vault
+[3] Encrypt/Decrypt Single File
+[4] Delete Vault
+[5] Quit")[..]);
+            if input == "1" {
+                vault_unlock_stage(&vaults)?;
             }
-            else {
-                if !x.ends_with("masterfile.e"){
-                    if x.ends_with(".encrypted") {
-                        let dist = x.strip_suffix(".encrypted").unwrap().to_string();
-                        functions::decrypt_file(&x, &dist, &password).ok();
-                    }
-                    else {
-                        let dist = format!("{}.encrypted", &x);
-                        functions::encrypt_file(&x, &dist, &password).ok();
-                    }
-                }
+            else if input == "2" {
+                functions::create_vault(&mut vaults, config_file)?;
             }
-        }
-    Ok(())
-}
-
-/// Check to see if the config file is present.
-/// If not, it will create it
-/// # Arguments
-/// * `config_path` string that points to the config file
-/// 
-fn check_config_file(config_path: &String) -> Result<(), anyhow::Error> {
-    if !Path::new(&config_path).exists() {
-        if !Path::new(&config_path.strip_suffix("/config").unwrap()).exists() {
-            fs::create_dir(&config_path.strip_suffix("/config").unwrap());
-            fs::File::create(&config_path);
+            else if input == "5" || input.to_lowercase() == "q" ||
+                input.to_lowercase() == "quit" {break}
         }
         else {
-            fs::File::create(&config_path);
+            let input = functions::get_input(&format!("[1] Create Vault
+[2] Encrypt/Decrypt Single File
+[3] Delete Vault
+[4] Quit")[..]);
+            if input == "1" {
+                functions::create_vault(&mut vaults, config_file)?;
+            }
+            else if input == "4" || input.to_lowercase() == "q" ||
+                input.to_lowercase() == "quit" {break}
         }
     }
     Ok(())
 }
 
-/*
-UX Intro 
-let args: Vec<String> = env::args().collect();
-let config_path = shellexpand::tilde("~/.rusty-vault/config").to_string();
-check_config_file(&config_path)?;
-*/
-
-/*
-Split String and Join Vec
-let path = String::from("/home/wsl/testing/test.txt");
-let mut test = path.split("/").collect::<Vec<&str>>();
-let mut filename = test[test.len()-1];
-test.pop();
-test.push("test.lol");
-let joined = test.join("/");
-*/
-
-/*
-filename encryption prep
-let argon2_config = functions::argon2_config();
-    let password = "password";
-    let path = "/home/wsl/testing/test.txt";
-
-    let mut salt = [0u8; 32];
-    let mut nonce = [0u8; 24];
-    OsRng.fill_bytes(&mut salt);
-    OsRng.fill_bytes(&mut nonce);
-
-    let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
-    functions::encrypt_filename(&path, &key, &nonce);
-*/
+fn vault_unlock_stage(
+    vaults: &HashMap<String, String>,
+) -> Result<(), anyhow::Error> {
+    print!("{}[2J", 27 as char);
+    println!("##Lock/Unlock Vault##");
+    let mut temp: HashMap<String, &String> = HashMap::new();
+    let mut counter: i32 = 1;
+    for (key, data) in vaults {
+        println!("[{}] {}", counter, key);
+        temp.insert(counter.to_string(), data);
+        counter += 1;
+    }
+    let input = functions::get_input(">");
+    if temp.contains_key(&input) {
+        functions::unlock_lock_vault(temp[&input].clone())?;
+    }
+    else {
+        functions::get_input("Bad input. Press ENTER to return to main menu.");
+    }
+    Ok(())
+}
 
 fn main() -> Result<(), anyhow::Error> {
-    let argon2_config = functions::argon2_config();
-    let password = "password";
-    let path = "/home/wsl/testing/test.txt";
-
-    let mut salt = [0u8; 32];
-    let mut nonce = [0u8; 19];
-    OsRng.fill_bytes(&mut salt);
-    OsRng.fill_bytes(&mut nonce);
-
-    let mut key = argon2::hash_raw(password.as_bytes(), &salt, &argon2_config)?;
-    println!("{}",functions::decrypt_filename(
-        &functions::encrypt_filename(&path, &key, &nonce)[..],
-        &key,
-        &nonce,
-    ));
-    
+    let args: Vec<String> = env::args().collect();
+    let config_path = shellexpand::tilde("~/.rusty-vault/config").to_string();
+    functions::check_config_file(&config_path)?;
+    let vaults: HashMap<String, String> = functions::read_config_file(&config_path);
+    main_menu(vaults, &config_path)?;
     Ok(())
 }
