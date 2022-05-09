@@ -17,6 +17,7 @@ use hex;
 use crate::{
     encryptionFunctions,
     masterfile,
+    vault::vault::Vault,
 };
 
 pub fn get_input(output: &str) -> String {
@@ -119,8 +120,8 @@ where P: AsRef<Path>, {
     Ok(io::BufReader::new(file).lines())
 }
 
-pub fn read_config_file(config_path: &str) -> HashMap<String, String> {
-    let mut vaults: HashMap<String, String> = HashMap::new();
+pub fn read_config_file(config_path: &str) -> Vec<Vault> {
+    let mut vaults: Vec<Vault> = Vec::new();
     if let Ok(lines) = read_lines(config_path) {
         for line in lines {
             if let Ok(data) = line {
@@ -128,10 +129,11 @@ pub fn read_config_file(config_path: &str) -> HashMap<String, String> {
                 // split by comma and enter into dict
                 let datal = data.split(",").collect::<Vec<&str>>();
                 if &datal.len() > &1 {
-                    vaults.insert(
-                        datal[0].to_string(),
-                        datal[1].to_string(),
-                    );
+                    vaults.push(
+                        Vault::new(String::from(datal[0]), 
+                        String::from(datal[1])
+                    )
+                    )
                 }
             }
         }
@@ -140,7 +142,7 @@ pub fn read_config_file(config_path: &str) -> HashMap<String, String> {
 }
 
 pub fn create_vault(
-    vaults: &mut HashMap<String, String>,
+    vaults: &mut Vec<Vault>,
     config_path: &String,
 ) -> Result<(), anyhow::Error> {
     // clear screen
@@ -150,6 +152,19 @@ pub fn create_vault(
     let path_to_create = get_input("Enter path for new vault: ");
     let name = get_input("Enter name for new vault: ");
     let password = get_password_input("Enter password for vault: ");
+
+    // format string with masterfile and add new vault to list
+    if path_to_create.ends_with("/") {
+        let master_file_path = format!("{}masterfile.e", &path_to_create);
+        vaults.push(
+            Vault::new(name.clone(), master_file_path)
+        );
+    } else {
+        let master_file_path = format!("{}/masterfile.e", &path_to_create);
+        vaults.push(
+            Vault::new(name.clone(), master_file_path)
+        );
+    }
 
     // create the masterfile with the password 
     masterfile::create_masterfile(&path_to_create.to_string(), &password.to_string())?;
@@ -161,8 +176,6 @@ pub fn create_vault(
         .open(&config_path)?;
     config_file.write_all(format!("{},{}/masterfile.e\n", name, path_to_create).as_bytes())?;
     
-    // add new vault to the vaults hashmap
-    vaults.insert(name, path_to_create);
     Ok(())
 }
 
@@ -183,4 +196,33 @@ pub fn unlock_lock_vault(
     dir_recur(&top_dir_path, &master_key)?;
     
     Ok(())
+}
+
+pub fn check_vault_status(path: &String) -> u8 {
+    let paths = fs::read_dir(path).unwrap();
+    let mut en = 0;
+    let mut de = 0;
+        for path_inv in paths {
+            let x = path_inv.unwrap().path().into_os_string().into_string().unwrap();
+            if check_file(&x) && !x.ends_with("masterfile.e") 
+                && !x.ends_with(".DS_Store") && x.ends_with(".encrypted") {
+                    en += 1;
+                }
+            else if check_file(&x) && !x.ends_with("masterfile.e") 
+            && !x.ends_with(".DS_Store") && !x.ends_with(".encrypted") {
+                de += 1;
+            }
+        }
+        if en != 0 && de != 0 {
+            return 2;
+        }
+        else if en == 0 && de > 0 {
+            return 1;
+        }
+        else if en > 0 && de == 0 {
+            return 0;
+        }
+        else {
+            return 3;
+        }
 }
