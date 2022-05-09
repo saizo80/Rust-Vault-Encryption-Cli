@@ -4,13 +4,17 @@ Roadmap:
 ↓
 - [x] Encrypt/Decrypt Folder  
 ↓
-- [ ] Encrypt/Decrypt Recursively  
+- [x] Encrypt/Decrypt Recursively  
 ↓
-- [ ] Encrypt/Decrypt Filenames  
+- [x] Save keys in password encrypted file  
+↓
+- [x] Encrypt/Decrypt Filenames  
 ↓
 - [ ] Encrypt/Decrypt Foldernames  
 ↓
-- [ ] Save keys in password encrypted file  
+- [ ] UX on launch  
+↓
+- [ ] Save paths to masterfiles and display  
 ↓
 - [ ] Mounting filesystem  
 ↓
