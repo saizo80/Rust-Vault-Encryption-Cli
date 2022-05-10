@@ -12,7 +12,9 @@ use std::{
 };
 use zeroize::Zeroize;
 use hex;
-use crate::functions;
+use crate::{
+    functions,
+    masterfile};
 
 const BUFFER_LEN: usize = 500;
 
@@ -187,5 +189,79 @@ pub fn decrypt_file(
     nonce.zeroize();
     key.zeroize();
 
+    Ok(())
+}
+
+pub fn encrypt_foldername(
+    source_path: &String, 
+    data: &masterfile::MasterfileData,
+) -> Result<(), anyhow::Error> {
+    let argon2_config = functions::argon2_config();
+    let key = argon2::hash_raw(&data.master_key, &data.folder_salt, &argon2_config)?;
+
+    let mut split_path = source_path.split("/").collect::<Vec<&str>>();
+    let path_size = split_path.len();
+    let mut foldername = split_path[path_size-1];
+    if foldername == "" {
+        foldername = split_path[path_size-2];
+    }
+
+    let key_ga = GenericArray::clone_from_slice(&key[..]);
+
+    let nonce_ga = GenericArray::clone_from_slice(&data.folder_nonce[..]);
+
+    let aead = XChaCha20Poly1305::new(&key_ga);
+
+    let encoded = aead.encrypt(&nonce_ga, foldername.as_bytes().as_ref()).expect("Encryption failure");
+
+    let encoded_str = format!("{}.encrypted", hex::encode(encoded.clone()));
+    if split_path[path_size-1] == ""{
+        split_path[path_size-2] = &encoded_str;
+    } else {
+        split_path[path_size-1] = &encoded_str;
+    }
+
+    let dist_path = split_path.join("/");
+    fs::rename(source_path, dist_path)?;
+    
+    Ok(())
+}
+
+pub fn decrypt_foldername(
+    encrypted_path: &String,
+    data: &masterfile::MasterfileData,
+) -> Result<(), anyhow::Error> {
+    let argon2_config = functions::argon2_config();
+    let key = argon2::hash_raw(&data.master_key, &data.folder_salt, &argon2_config)?;
+
+    let mut split_path = encrypted_path.split("/").collect::<Vec<&str>>();
+    let path_size = split_path.len();
+    let mut encrypted_foldername = String::from(split_path[path_size-1]);
+    if encrypted_foldername == "" {
+        encrypted_foldername = String::from(split_path[path_size-2]);
+    }
+    encrypted_foldername.truncate(encrypted_foldername.len()-10);
+
+    let to_decrypt = hex::decode(encrypted_foldername.clone()).unwrap();
+
+    let key_ga = GenericArray::clone_from_slice(&key[..]);
+
+    let nonce_ga = GenericArray::clone_from_slice(&data.folder_nonce[..]);
+
+    let aead = XChaCha20Poly1305::new(&key_ga);
+
+    let decoded = aead.decrypt(&nonce_ga, to_decrypt.as_ref()).expect("Encryption failure");
+
+    let decoded_str = std::str::from_utf8(&decoded).unwrap();
+
+    if split_path[path_size-1] == ""{
+        split_path[path_size-2] = &decoded_str;
+    } else {
+        split_path[path_size-1] = &decoded_str;
+    }
+
+    let dist_path = split_path.join("/");
+
+    fs::rename(encrypted_path, dist_path)?;
     Ok(())
 }

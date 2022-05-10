@@ -12,6 +12,12 @@ use crate::functions;
 #[allow(unused_imports)]
 #[allow(unused_assignments)]
 
+pub struct MasterfileData {
+    pub master_key: [u8; 32],
+    pub folder_salt: [u8; 32],
+    pub folder_nonce: [u8; 24],
+}
+
 pub fn create_masterfile(
     path: &String, 
     password: &String,
@@ -67,7 +73,7 @@ pub fn create_masterfile(
 pub fn read_masterfile(
     path: &String, 
     password: &String,
-) -> ([u8; 32], [u8; 32], [u8; 24]) {
+) -> MasterfileData {
     
     // Initialize all byte arrays
     let mut encrypted_folder_salt = [0u8; 48];
@@ -102,7 +108,9 @@ pub fn read_masterfile(
     key.zeroize();
     masterfile_salt.zeroize();
     masterfile_nonce.zeroize();
-    return (functions::into_array(master_key), 
-        functions::into_array(folder_salt), 
-        functions::into_array(folder_nonce));
+    return MasterfileData {
+        master_key: functions::into_array(master_key), 
+        folder_salt: functions::into_array(folder_salt), 
+        folder_nonce: functions::into_array(folder_nonce),
+    };
 }

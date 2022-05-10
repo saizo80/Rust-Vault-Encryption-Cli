@@ -71,22 +71,27 @@ pub fn into_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
         .unwrap_or_else(|v: Vec<T>| panic!("Expected a Vec of length {} but it was {}", N, v.len()))
 }
 
-pub fn dir_recur(path: &String, password: &[u8; 32]) -> Result<(), anyhow::Error> {
+pub fn dir_recur(path: &String, data: &masterfile::MasterfileData) -> Result<(), anyhow::Error> {
     let paths = fs::read_dir(path).unwrap();
         for path_inv in paths {
             let x = path_inv?.path().into_os_string().into_string().unwrap();
             if check_dir(&x) {
-                dir_recur(&x, &password)?;
+                dir_recur(&x, data)?;
+                if x.ends_with(".encrypted"){
+                    encryptionFunctions::decrypt_foldername(&x, data)?;
+                } else {
+                    encryptionFunctions::encrypt_foldername(&x, data)?;
+                }
             }
             else {
                 if !x.ends_with("masterfile.e") && !x.ends_with(".DS_Store"){
                     if x.ends_with(".encrypted") {
                         let dist = x.strip_suffix(".encrypted").unwrap().to_string();
-                        encryptionFunctions::decrypt_file(&x, &password).ok();
+                        encryptionFunctions::decrypt_file(&x, &data.master_key).ok();
                     }
                     else {
                         let dist = format!("{}.encrypted", &x);
-                        encryptionFunctions::encrypt_file(&x, &password).ok();
+                        encryptionFunctions::encrypt_file(&x, &data.master_key).ok();
                     }
                 }
             }
@@ -183,7 +188,7 @@ pub fn unlock_lock_vault(
     masterfile_path: String
 ) -> Result<(), anyhow::Error> {
     // read in data from masterfile
-    let (master_key, folder_salt, folder_nonce) = 
+    let masterfile_data = 
         masterfile::read_masterfile(&masterfile_path, 
         &get_password_input("Enter vault password: "));
     
@@ -193,7 +198,7 @@ pub fn unlock_lock_vault(
     let top_dir_path = top_dir.join("/");
     
     // loop through folder tree and encrypt/decrypt
-    dir_recur(&top_dir_path, &master_key)?;
+    dir_recur(&top_dir_path, &masterfile_data)?;
     
     Ok(())
 }
