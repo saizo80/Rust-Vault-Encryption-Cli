@@ -77,6 +77,7 @@ pub fn dir_recur(path: &String, password: &[u8; 32]) -> Result<(), anyhow::Error
             let x = path_inv?.path().into_os_string().into_string().unwrap();
             if check_dir(&x) {
                 dir_recur(&x, &password)?;
+                // encrypt, decrypt foldername
             }
             else {
                 if !x.ends_with("masterfile.e") && !x.ends_with(".DS_Store"){
@@ -183,7 +184,7 @@ pub fn unlock_lock_vault(
     masterfile_path: String
 ) -> Result<(), anyhow::Error> {
     // read in data from masterfile
-    let (master_key, folder_salt, folder_nonce) = 
+    let masterfile_data = 
         masterfile::read_masterfile(&masterfile_path, 
         &get_password_input("Enter vault password: "));
     
@@ -193,7 +194,7 @@ pub fn unlock_lock_vault(
     let top_dir_path = top_dir.join("/");
     
     // loop through folder tree and encrypt/decrypt
-    dir_recur(&top_dir_path, &master_key)?;
+    dir_recur(&top_dir_path, &masterfile_data.master_key)?;
     
     Ok(())
 }

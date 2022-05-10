@@ -50,7 +50,7 @@ fn main_menu(
 [5] Quit")[..]);
             if input == "1" {
                 vault_unlock_stage(&vaults)?;
-                test(vaults);
+                recheck_vault_status(vaults);
             }
             else if input == "2" {
                 functions::create_vault(vaults, config_file)?;
@@ -104,7 +104,7 @@ fn vault_unlock_stage(
     Ok(())
 }
 
-fn test(temp: &mut Vec<Vault>) {
+fn recheck_vault_status(temp: &mut Vec<Vault>) {
     for i in temp {
         i.check_status();
     }
