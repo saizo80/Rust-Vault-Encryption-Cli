@@ -10,7 +10,7 @@ Roadmap:
 ↓
 - [x] Encrypt/Decrypt Filenames  
 ↓
-- [ ] Encrypt/Decrypt Foldernames  
+- [x] Encrypt/Decrypt Foldernames  
 ↓
 - [x] UX on launch  
 ↓
