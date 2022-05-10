@@ -45,7 +45,7 @@ fn main_menu(
         if &vaults.len() > &0 {
             let input: String = functions::get_input(&format!("[1] Lock/Unlock Vault
 [2] Create Vault
-[3] Encrypt/Decrypt Single File - [Not Available]
+[3] Add Existing Vault - [Not Available]
 [4] Delete Vault - [Not Available]
 [5] Quit")[..]);
             if input == "1" {
@@ -60,7 +60,7 @@ fn main_menu(
         }
         else {
             let input = functions::get_input(&format!("[1] Create Vault
-[2] Encrypt/Decrypt Single File
+[2] Add Existing Vault - [Not Available]
 [4] Quit")[..]);
             if input == "1" {
                 functions::create_vault(vaults, config_file)?;

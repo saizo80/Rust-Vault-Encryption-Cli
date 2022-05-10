@@ -52,10 +52,16 @@ pub fn argon2_config<'a>() -> argon2::Config<'a> {
 }
 
 pub fn get_password_input(output: &str) -> String {
-    /*
-    TODO: Double check password before returning
-    */
-    return rpassword::prompt_password(output).unwrap();
+    let mut password1 = String::new();
+    loop {
+        password1 = rpassword::prompt_password(output).unwrap();
+        let password2 = rpassword::prompt_password("Confirm password: ").unwrap();
+        if password1 == password2 {
+            break
+        }
+        println!("Passwords do not match. Try again.");
+    }
+    return password1;
 }
 
 pub fn check_file(path: &String) -> bool {
@@ -71,7 +77,10 @@ pub fn into_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
         .unwrap_or_else(|v: Vec<T>| panic!("Expected a Vec of length {} but it was {}", N, v.len()))
 }
 
-pub fn dir_recur(path: &String, data: &masterfile::MasterfileData) -> Result<(), anyhow::Error> {
+pub fn dir_recur(
+    path: &String, 
+    data: &masterfile::MasterfileData,
+) -> Result<(), anyhow::Error> {
     let paths = fs::read_dir(path).unwrap();
         for path_inv in paths {
             let x = path_inv?.path().into_os_string().into_string().unwrap();
@@ -84,13 +93,12 @@ pub fn dir_recur(path: &String, data: &masterfile::MasterfileData) -> Result<(),
                 }
             }
             else {
-                if !x.ends_with("masterfile.e") && !x.ends_with(".DS_Store"){
+                if !x.ends_with("masterfile.e") && !x.ends_with(".DS_Store")
+                    && !x.ends_with("Icon") {
                     if x.ends_with(".encrypted") {
-                        let dist = x.strip_suffix(".encrypted").unwrap().to_string();
                         encryptionFunctions::decrypt_file(&x, &data.master_key).ok();
                     }
                     else {
-                        let dist = format!("{}.encrypted", &x);
                         encryptionFunctions::encrypt_file(&x, &data.master_key).ok();
                     }
                 }
