@@ -84,24 +84,46 @@ fn vault_unlock_stage(
     let MIXED = format!("MIXED").red();
     let UNKNOWN = format!("STATUS UNKNOWN").red();
 
-    let mut temp: HashMap<String, &String> = HashMap::new();
+    //let mut temp: HashMap<String, &String> = HashMap::new();
+    let mut temp: Vec<VaultStage> = Vec::new();
     let mut counter: i32 = 1;
     for i in vaults {
         if i.status == 0 {println!("[{}] {} - {}", counter, i.name, LOCKED);}
         else if i.status == 1 {println!("[{}] {} - {}", counter, i.name, UNLOCKED);}
         else if i.status == 2 {println!("[{}] {} - {}", counter, i.name, MIXED);}
         else {println!("[{}] {} - {}", counter, i.name, UNKNOWN);}
-        temp.insert(counter.to_string(), &i.master_file_path);
+        temp.push(
+            VaultStage {
+                vault_ref: i,
+                index: counter.to_string(),
+            }
+        );
+        //temp.insert(counter.to_string(), &i.master_file_path);
         counter += 1;
     }
     let input = functions::get_input(">");
-    if temp.contains_key(&input) {
-        functions::unlock_lock_vault(temp[&input].clone())?;
+    for i in temp {
+        if i.index == input {
+            if i.vault_ref.status == 1 {
+                functions::unlock_lock_vault
+                    (i.vault_ref.master_file_path.clone(), true)?;
+            } else if i.vault_ref.status == 0 {
+                functions::unlock_lock_vault
+                    (i.vault_ref.master_file_path.clone(), false)?;
+            }
+        }
     }
+    /*
     else {
         functions::get_input("Bad input. Press ENTER to return to main menu.");
     }
+    */
     Ok(())
+}
+
+struct VaultStage<'a>{
+    pub vault_ref: &'a Vault,
+    pub index: String,
 }
 
 fn recheck_vault_status(temp: &mut Vec<Vault>) {

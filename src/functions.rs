@@ -80,25 +80,26 @@ pub fn into_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
 pub fn dir_recur(
     path: &String, 
     data: &masterfile::MasterfileData,
+    force_encrypt: bool,
 ) -> Result<(), anyhow::Error> {
     let paths = fs::read_dir(path).unwrap();
         for path_inv in paths {
             let x = path_inv?.path().into_os_string().into_string().unwrap();
             if check_dir(&x) {
-                dir_recur(&x, data)?;
-                if x.ends_with(".encrypted"){
+                dir_recur(&x, data, force_encrypt)?;
+                if x.ends_with(".encrypted") && !force_encrypt{
                     encryptionFunctions::decrypt_foldername(&x, data)?;
-                } else {
+                } else if !x.ends_with(".encrypted") && force_encrypt{
                     encryptionFunctions::encrypt_foldername(&x, data)?;
                 }
             }
             else {
                 if !x.ends_with("masterfile.e") && !x.ends_with(".DS_Store")
                     && !x.ends_with("Icon") {
-                    if x.ends_with(".encrypted") {
+                    if x.ends_with(".encrypted") && !force_encrypt {
                         encryptionFunctions::decrypt_file(&x, &data.master_key).ok();
                     }
-                    else {
+                    else if !x.ends_with(".encrypted") && force_encrypt {
                         encryptionFunctions::encrypt_file(&x, &data.master_key).ok();
                     }
                 }
@@ -193,7 +194,8 @@ pub fn create_vault(
 }
 
 pub fn unlock_lock_vault(
-    masterfile_path: String
+    masterfile_path: String,
+    force_encrypt: bool,
 ) -> Result<(), anyhow::Error> {
     // read in data from masterfile
     let masterfile_data = 
@@ -206,7 +208,7 @@ pub fn unlock_lock_vault(
     let top_dir_path = top_dir.join("/");
     
     // loop through folder tree and encrypt/decrypt
-    dir_recur(&top_dir_path, &masterfile_data)?;
+    dir_recur(&top_dir_path, &masterfile_data, force_encrypt)?;
     
     Ok(())
 }
