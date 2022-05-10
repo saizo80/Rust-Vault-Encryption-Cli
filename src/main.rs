@@ -80,7 +80,7 @@ fn vault_unlock_stage(
 
     // Define statuses
     let LOCKED = format!("LOCKED").green();
-    let UNLOCKED = format!("UNLOCKED").green();
+    let UNLOCKED = format!("UNLOCKED").yellow();
     let MIXED = format!("MIXED").red();
     let UNKNOWN = format!("STATUS UNKNOWN").red();
 
