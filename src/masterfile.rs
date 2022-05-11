@@ -18,6 +18,15 @@ pub struct MasterfileData {
     pub folder_nonce: [u8; 24],
 }
 
+
+impl Copy for MasterfileData {}
+
+impl Clone for MasterfileData {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
 pub fn create_masterfile(
     path: &String, 
     password: &String,
