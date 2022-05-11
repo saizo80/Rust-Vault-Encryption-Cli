@@ -11,6 +11,12 @@ use std::{
     io::{self, Read, Write, BufRead},
     path::Path,
     collections::HashMap,
+    thread,
+    sync::atomic::{
+        AtomicUsize,
+        Ordering,
+    },
+    time::Duration,
 };
 use zeroize::Zeroize;
 use hex;
@@ -19,6 +25,7 @@ use crate::{
     masterfile,
     vault::vault::Vault,
 };
+static GLOBAL_THREAD_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 pub fn get_input(output: &str) -> String {
     let mut line = String::new();
@@ -86,12 +93,20 @@ pub fn dir_recur(
         for path_inv in paths {
             let x = path_inv?.path().into_os_string().into_string().unwrap();
             if check_dir(&x) {
-                dir_recur(&x, data, force_encrypt)?;
-                if x.ends_with(".encrypted") && !force_encrypt{
-                    encryptionFunctions::decrypt_foldername(&x, data)?;
-                } else if !x.ends_with(".encrypted") && force_encrypt{
-                    encryptionFunctions::encrypt_foldername(&x, data)?;
-                }
+                let tx = x.clone();
+                let tdata = data.clone();
+                let tbool = force_encrypt.clone();
+                GLOBAL_THREAD_COUNT.fetch_add(1, Ordering::SeqCst);
+                thread::spawn(move|| {
+                    dir_recur(&tx, &tdata, tbool);
+                    /*
+                    if tx.ends_with(".encrypted") && !force_encrypt{
+                        encryptionFunctions::decrypt_foldername(&tx, &tdata);
+                    } else if !tx.ends_with(".encrypted") && force_encrypt{
+                        encryptionFunctions::encrypt_foldername(&tx, &tdata);
+                    } */
+                    GLOBAL_THREAD_COUNT.fetch_sub(1, Ordering::SeqCst);
+                });      
             }
             else {
                 if !x.ends_with("masterfile.e") && !x.ends_with(".DS_Store")
@@ -102,6 +117,26 @@ pub fn dir_recur(
                     else if !x.ends_with(".encrypted") && force_encrypt {
                         encryptionFunctions::encrypt_file(&x, &data.master_key).ok();
                     }
+                }
+            }
+        }
+    Ok(())
+}
+
+fn folder_recur(
+    path: &String, 
+    data: &masterfile::MasterfileData,
+    force_encrypt: bool,
+) -> Result<(), anyhow::Error> {
+    let paths = fs::read_dir(path).unwrap();
+        for path_inv in paths {
+            let x = path_inv?.path().into_os_string().into_string().unwrap();
+            if check_dir(&x) {
+                folder_recur(&x, &data, force_encrypt);
+                if x.ends_with(".encrypted") && !force_encrypt{
+                    encryptionFunctions::decrypt_foldername(&x, &data);
+                } else if !x.ends_with(".encrypted") && force_encrypt{
+                    encryptionFunctions::encrypt_foldername(&x, &data);
                 }
             }
         }
@@ -208,8 +243,21 @@ pub fn unlock_lock_vault(
     let top_dir_path = top_dir.join("/");
     
     // loop through folder tree and encrypt/decrypt
+    if force_encrypt {
+        println!("Encrypting Files");
+    } else {
+        println!("Decrypting Files");
+    }
     dir_recur(&top_dir_path, &masterfile_data, force_encrypt)?;
-    
+    while GLOBAL_THREAD_COUNT.load(Ordering::SeqCst) != 0 {
+        thread::sleep(Duration::from_millis(1));
+    }
+    if force_encrypt {
+        println!("Encrypting Foldernames");
+    } else {
+        println!("Decrypting Foldernames");
+    }
+    folder_recur(&top_dir_path, &masterfile_data, force_encrypt)?;
     Ok(())
 }
 
