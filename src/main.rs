@@ -61,7 +61,7 @@ fn main_menu(
         else {
             let input = functions::get_input(&format!("[1] Create Vault
 [2] Add Existing Vault - [Not Available]
-[4] Quit")[..]);
+[3] Quit")[..]);
             if input == "1" {
                 functions::create_vault(vaults, config_file)?;
             }
