@@ -296,7 +296,7 @@ pub fn write_vaults(
 ) -> Result<(), anyhow::Error> {
     let mut config_file = fs::OpenOptions::new()
         .write(true)
-        .append(false)
+        .truncate(true)
         .open(&config_path)?;
     for i in vaults {
         config_file.write(format!

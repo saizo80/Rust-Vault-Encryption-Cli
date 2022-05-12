@@ -55,6 +55,9 @@ fn main_menu(
             else if input == "2" {
                 functions::create_vault(vaults, config_file)?;
             }
+            else if input == "4" {
+                vault_remove_stage(vaults, config_file)?;
+            }
             else if input == "5" || input.to_lowercase() == "q" ||
                 input.to_lowercase() == "quit" {break}
         }
@@ -65,7 +68,7 @@ fn main_menu(
             if input == "1" {
                 functions::create_vault(vaults, config_file)?;
             }
-            else if input == "4" || input.to_lowercase() == "q" ||
+            else if input == "3" || input.to_lowercase() == "q" ||
                 input.to_lowercase() == "quit" {break}
         }
     }
@@ -130,6 +133,31 @@ fn recheck_vault_status(temp: &mut Vec<Vault>) {
     for i in temp {
         i.check_status();
     }
+}
+
+fn vault_remove_stage(
+    vaults: &mut Vec<Vault>,
+    config_path: &String,
+) -> Result<(), anyhow::Error> {
+    let mut counter = 1;
+
+    // Define statuses
+    let LOCKED = format!("LOCKED").green();
+    let UNLOCKED = format!("UNLOCKED").yellow();
+    let MIXED = format!("MIXED").red();
+    let UNKNOWN = format!("STATUS UNKNOWN").red();
+    for i in vaults.clone() {
+        if i.status == 0 {println!("[{}] {} - {}", counter, i.name, LOCKED);}
+        else if i.status == 1 {println!("[{}] {} - {}", counter, i.name, UNLOCKED);}
+        else if i.status == 2 {println!("[{}] {} - {}", counter, i.name, MIXED);}
+        else {println!("[{}] {} - {}", counter, i.name, UNKNOWN);}
+        counter += 1;
+    }
+    let input = functions::get_input(">");
+    let index = input.parse::<i32>().unwrap() - 1;
+    vaults.remove(index as usize);
+    functions::write_vaults(vaults, config_path)?;
+    Ok(())
 }
 
 fn main() -> Result<(), anyhow::Error> {

@@ -1,12 +1,13 @@
 pub mod vault {
     use crate::functions;
+    #[derive(Clone)]
     pub struct Vault {
         pub name: String,
         pub master_file_path: String,
         pub path: String,
         pub status: u8, 
     }
-
+    
     impl Vault{
         /// Name 
         ///  
@@ -47,5 +48,6 @@ pub mod vault {
         pub fn check_status(&mut self) {
             self.status = functions::check_vault_status(&self.path);
         }
+        
     }
 }
