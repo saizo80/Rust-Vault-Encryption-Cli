@@ -1,6 +1,6 @@
 /*
 Vault Encrypt
-Written by Matthew Thornton
+Written by Olympia (Matthew) Thornton
 April 24 2022
 
 */
