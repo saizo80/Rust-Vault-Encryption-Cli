@@ -14,3 +14,7 @@ It needs to be said that this program is written for UNIX systems, MacOS and Lin
 The usage of the program is straightforward in the menus that are presented. When it asks for a file path it is possible to drag and drop the file from any file explorer into the terminal window. The program should be able to clean up any input that is given in that manner.
 
 Upon launching, if there are vaults with mixed files (encrypted and unencrypted) you will be warned and given the option to encrypt the plaintext files. While a choice is given for this scenario, you will not be able to encrypt or decrypt the vault while the files are mixed, therefore I would recommend encrypting the loose files before proceeding. 
+
+## TODO
+- [ ] Write comments and document code
+- [ ] Make option to return to main menu in branching menus
