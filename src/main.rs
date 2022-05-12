@@ -45,7 +45,7 @@ fn main_menu(
         if &vaults.len() > &0 {
             let input: String = functions::get_input(&format!("[1] Lock/Unlock Vault
 [2] Create Vault
-[3] Add Existing Vault - [Not Available]
+[3] Add Existing Vault
 [4] Delete Vault
 [5] Quit")[..]);
             if input == "1" {
@@ -55,6 +55,9 @@ fn main_menu(
             else if input == "2" {
                 functions::create_vault(vaults, config_file)?;
             }
+            else if input == "3" {
+                add_existing_vault(vaults, config_file)?;
+            }
             else if input == "4" {
                 vault_remove_stage(vaults, config_file)?;
             }
@@ -63,10 +66,13 @@ fn main_menu(
         }
         else {
             let input = functions::get_input(&format!("[1] Create Vault
-[2] Add Existing Vault - [Not Available]
+[2] Add Existing Vault
 [3] Quit")[..]);
             if input == "1" {
                 functions::create_vault(vaults, config_file)?;
+            }
+            else if input == "2" {
+                add_existing_vault(vaults, config_file)?;
             }
             else if input == "3" || input.to_lowercase() == "q" ||
                 input.to_lowercase() == "quit" {break}
@@ -169,7 +175,24 @@ fn vault_remove_stage(
         vaults.remove(index as usize);
         functions::write_vaults(vaults, config_path)?;
     }
-    
+    Ok(())
+}
+
+fn add_existing_vault(
+    vaults: &mut Vec<Vault>,
+    config_path: &String,
+) -> Result<(), anyhow::Error> {
+    let path_to_create = functions::get_input("Enter path of masterfile.e: ");
+    let name = functions::get_input("Enter name for new vault: ");
+
+    if path_to_create.clone().ends_with("masterfile.e") && fs::metadata(path_to_create.clone())?.len() == 192 {
+        vaults.push(
+            Vault::new(name.clone(), path_to_create)
+        );
+        functions::write_vaults(vaults, config_path)?;
+    } else {
+        println!("Bad masterfile or path.");
+    }
     Ok(())
 }
 
