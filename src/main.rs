@@ -46,7 +46,7 @@ fn main_menu(
             let input: String = functions::get_input(&format!("[1] Lock/Unlock Vault
 [2] Create Vault
 [3] Add Existing Vault - [Not Available]
-[4] Delete Vault - [Not Available]
+[4] Delete Vault
 [5] Quit")[..]);
             if input == "1" {
                 vault_unlock_stage(&vaults)?;
@@ -139,6 +139,9 @@ fn vault_remove_stage(
     vaults: &mut Vec<Vault>,
     config_path: &String,
 ) -> Result<(), anyhow::Error> {
+    print!("{}[2J", 27 as char);
+    println!("##Delete Vault##");
+
     let mut counter = 1;
 
     // Define statuses
@@ -155,8 +158,18 @@ fn vault_remove_stage(
     }
     let input = functions::get_input(">");
     let index = input.parse::<i32>().unwrap() - 1;
-    vaults.remove(index as usize);
-    functions::write_vaults(vaults, config_path)?;
+    let confirmation = functions::get_input(&format!
+        ("This vault will be unlocked if locked and deleted. Are you sure this is what you want? [Y/N]")[..]);
+    if confirmation.to_lowercase() == "y" {
+        let master_file_path = vaults[index as usize].master_file_path.clone();
+        if vaults[index as usize].status == 0 {
+            functions::unlock_lock_vault(master_file_path.clone(), false)?;
+        }
+        fs::remove_file(master_file_path)?;
+        vaults.remove(index as usize);
+        functions::write_vaults(vaults, config_path)?;
+    }
+    
     Ok(())
 }
 

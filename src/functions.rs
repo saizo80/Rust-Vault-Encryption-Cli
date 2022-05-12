@@ -300,7 +300,7 @@ pub fn write_vaults(
         .open(&config_path)?;
     for i in vaults {
         config_file.write(format!
-            ("{},{},{}", i.name, i.master_file_path, i.status)
+            ("{},{}", i.name, i.master_file_path)
             .as_bytes());
     }
     Ok(())
