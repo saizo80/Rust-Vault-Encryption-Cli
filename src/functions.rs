@@ -289,3 +289,19 @@ pub fn check_vault_status(path: &String) -> u8 {
             return 3;
         }
 }
+
+pub fn write_vaults(
+    vaults: &Vec<Vault>,
+    config_path: &String,
+) -> Result<(), anyhow::Error> {
+    let mut config_file = fs::OpenOptions::new()
+        .write(true)
+        .append(false)
+        .open(&config_path)?;
+    for i in vaults {
+        config_file.write(format!
+            ("{},{},{}", i.name, i.master_file_path, i.status)
+            .as_bytes());
+    }
+    Ok(())
+}
