@@ -5,6 +5,8 @@ This program is meant to create '*vaults*' that are at the top of a directory tr
 
 It needs to be said that this program is written for UNIX systems, MacOS and Linux, and has **not** been tested and will most likely **not** work on Windows.
 
+Also this is just a personal project to learn the rust language. Please do **not** use this program for serious encryption. If you are in need of that please use an app like Cryptomator, which is what I personally use.
+
 ## Installation
 - First, install rustc and cargo using this script -> `curl https://sh.rustup.rs -sSf | sh` 
 	- **Note, script is taken straight from the rust website so it should be safe to run, but as always please verify all script files before running.**
