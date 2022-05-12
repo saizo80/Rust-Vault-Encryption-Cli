@@ -1,16 +1,8 @@
-use anyhow::anyhow;
-use chacha20poly1305::{
-    aead::{stream, Aead, NewAead, generic_array::GenericArray},
-    XChaCha20Poly1305,
-};
-use chacha20poly1305;
-use rand::{rngs::OsRng, RngCore,};
 use std::{
     fs,
     fs::File,
-    io::{self, Read, Write, BufRead},
+    io::{self, Write, BufRead},
     path::Path,
-    collections::HashMap,
     thread,
     sync::atomic::{
         AtomicUsize,
@@ -18,8 +10,6 @@ use std::{
     },
     time::Duration,
 };
-use zeroize::Zeroize;
-use hex;
 use crate::{
     encryptionFunctions,
     masterfile,
@@ -59,16 +49,16 @@ pub fn argon2_config<'a>() -> argon2::Config<'a> {
 }
 
 pub fn get_password_input(output: &str) -> String {
-    let mut password1 = String::new();
+    let mut _password1 = String::new();
     loop {
-        password1 = rpassword::prompt_password(output).unwrap();
+        _password1 = rpassword::prompt_password(output).unwrap();
         let password2 = rpassword::prompt_password("Confirm password: ").unwrap();
-        if password1 == password2 {
+        if _password1 == password2 {
             break
         }
         println!("Passwords do not match. Try again.");
     }
-    return password1;
+    return _password1;
 }
 
 pub fn check_file(path: &String) -> bool {
@@ -98,7 +88,7 @@ pub fn dir_recur(
                 let tbool = force_encrypt.clone();
                 GLOBAL_THREAD_COUNT.fetch_add(1, Ordering::SeqCst);
                 thread::spawn(move|| {
-                    dir_recur(&tx, &tdata, tbool);
+                    dir_recur(&tx, &tdata, tbool).unwrap();
                     /*
                     if tx.ends_with(".encrypted") && !force_encrypt{
                         encryptionFunctions::decrypt_foldername(&tx, &tdata);
@@ -132,11 +122,11 @@ fn folder_recur(
         for path_inv in paths {
             let x = path_inv?.path().into_os_string().into_string().unwrap();
             if check_dir(&x) {
-                folder_recur(&x, &data, force_encrypt);
+                folder_recur(&x, &data, force_encrypt)?;
                 if x.ends_with(".encrypted") && !force_encrypt{
-                    encryptionFunctions::decrypt_foldername(&x, &data);
+                    encryptionFunctions::decrypt_foldername(&x, &data)?;
                 } else if !x.ends_with(".encrypted") && force_encrypt{
-                    encryptionFunctions::encrypt_foldername(&x, &data);
+                    encryptionFunctions::encrypt_foldername(&x, &data)?;
                 }
             }
         }
@@ -151,11 +141,11 @@ fn folder_recur(
 pub fn check_config_file(config_path: &String) -> Result<(), anyhow::Error> {
     if !Path::new(&config_path).exists() {
         if !Path::new(&config_path.strip_suffix("/config").unwrap()).exists() {
-            fs::create_dir(&config_path.strip_suffix("/config").unwrap());
-            fs::File::create(&config_path);
+            fs::create_dir(&config_path.strip_suffix("/config").unwrap())?;
+            fs::File::create(&config_path)?;
         }
         else {
-            fs::File::create(&config_path);
+            fs::File::create(&config_path)?;
         }
     }
     Ok(())
@@ -301,7 +291,7 @@ pub fn write_vaults(
     for i in vaults {
         config_file.write(format!
             ("{},{}", i.name, i.master_file_path)
-            .as_bytes());
+            .as_bytes())?;
     }
     Ok(())
 }

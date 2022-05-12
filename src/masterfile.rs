@@ -95,11 +95,11 @@ pub fn read_masterfile(
     let mut masterfile = fs::File::open(&path).unwrap();
     
     // Read all data in 
-    masterfile.read(&mut masterfile_salt);
-    masterfile.read(&mut masterfile_nonce);
-    masterfile.read(&mut encrypted_master_key);
-    masterfile.read(&mut encrypted_folder_salt);
-    masterfile.read(&mut encrypted_folder_nonce);
+    masterfile.read(&mut masterfile_salt).unwrap();
+    masterfile.read(&mut masterfile_nonce).unwrap();
+    masterfile.read(&mut encrypted_master_key).unwrap();
+    masterfile.read(&mut encrypted_folder_salt).unwrap();
+    masterfile.read(&mut encrypted_folder_nonce).unwrap();
 
     // initialize aead and nonce_ga
     let argon2_config = functions::argon2_config();

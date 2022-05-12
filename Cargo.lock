@@ -161,21 +161,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "encode_walk_rust"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chacha20poly1305",
- "colored",
- "hex",
- "rand",
- "rpassword",
- "rust-argon2",
- "shellexpand",
- "zeroize",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -342,6 +327,21 @@ dependencies = [
  "blake2b_simd",
  "constant_time_eq",
  "crossbeam-utils",
+]
+
+[[package]]
+name = "rusty-vault"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "chacha20poly1305",
+ "colored",
+ "hex",
+ "rand",
+ "rpassword",
+ "rust-argon2",
+ "shellexpand",
+ "zeroize",
 ]
 
 [[package]]

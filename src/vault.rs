@@ -32,20 +32,8 @@ pub mod vault {
                 status,
             }
         }
-        pub fn to_string(&self) -> String {
-            let mut temp = "Error";
-            if self.status == 0 {
-                temp = "Locked";
-            } else if self.status == 1 {
-                temp = "Unlocked";
-            } else if self.status == 2 {
-                temp = "Mixed";
-            }
-            return format!("Name:{}\nPath:{}\nStatus:{}", self.name,
-                self.path, temp);
-        }
 
-        pub fn check_status(&mut self) {
+        pub fn check_status(&mut self) -> Result<(), anyhow::Error> {
             self.status = functions::check_vault_status(&self.path);
             if self.status == 2 {
                 print!("{}[2J", 27 as char);
@@ -55,11 +43,11 @@ pub mod vault {
                      self.name)[..]);
                 if input.to_lowercase() == "y" {
                     functions::unlock_lock_vault
-                    (self.master_file_path.clone(), true);
-                    self.check_status();
+                        (self.master_file_path.clone(), true)?;
+                    self.check_status()?;
                 }
             }
+            Ok(())
         }
-        
     }
 }

@@ -1,14 +1,9 @@
 /*
 Vault Encrypt
-Written by Matthew Thornton
+Written by Olympia (Matthew) Thornton
 April 24 2022
 
 */
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_must_use)]
-#![allow(unused_assignments)]
-#![allow(unused_imports)]
 #![allow(non_snake_case)]
 // import functions from file
 mod functions;
@@ -18,22 +13,10 @@ mod vault;
 
 use vault::vault::Vault;
 use colored::Colorize;
-use zeroize::Zeroize;
 use std::{
     fs, 
-    env,
-    path::Path,
-    fs::File,
-    io::{
-        self,
-        BufRead,
-        Write,
-    },
-    collections::HashMap,
 };
-use anyhow::anyhow;
 use shellexpand;
-use rand::{rngs::OsRng, RngCore,};
 
 fn main_menu(
     vaults: &mut Vec<Vault>,
@@ -139,7 +122,7 @@ fn recheck_vault_status(
     temp: &mut Vec<Vault>
 ) -> Result<(), anyhow::Error> {
     for i in temp {
-        i.check_status();
+        i.check_status()?;
     }
     Ok(())
 }
@@ -202,7 +185,6 @@ fn add_existing_vault(
 }
 
 fn main() -> Result<(), anyhow::Error> {
-    let args: Vec<String> = env::args().collect();
     let config_path = shellexpand::tilde("~/.rusty-vault/config").to_string();
     functions::check_config_file(&config_path)?;
     let mut vaults: Vec<Vault> = functions::read_config_file(&config_path);
