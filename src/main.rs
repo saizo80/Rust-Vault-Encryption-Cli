@@ -45,27 +45,36 @@ fn main_menu(
         if &vaults.len() > &0 {
             let input: String = functions::get_input(&format!("[1] Lock/Unlock Vault
 [2] Create Vault
-[3] Add Existing Vault - [Not Available]
-[4] Delete Vault - [Not Available]
+[3] Add Existing Vault
+[4] Delete Vault
 [5] Quit")[..]);
             if input == "1" {
                 vault_unlock_stage(&vaults)?;
-                recheck_vault_status(vaults);
+                recheck_vault_status(vaults)?;
             }
             else if input == "2" {
                 functions::create_vault(vaults, config_file)?;
+            }
+            else if input == "3" {
+                add_existing_vault(vaults, config_file)?;
+            }
+            else if input == "4" {
+                vault_remove_stage(vaults, config_file)?;
             }
             else if input == "5" || input.to_lowercase() == "q" ||
                 input.to_lowercase() == "quit" {break}
         }
         else {
             let input = functions::get_input(&format!("[1] Create Vault
-[2] Add Existing Vault - [Not Available]
-[4] Quit")[..]);
+[2] Add Existing Vault
+[3] Quit")[..]);
             if input == "1" {
                 functions::create_vault(vaults, config_file)?;
             }
-            else if input == "4" || input.to_lowercase() == "q" ||
+            else if input == "2" {
+                add_existing_vault(vaults, config_file)?;
+            }
+            else if input == "3" || input.to_lowercase() == "q" ||
                 input.to_lowercase() == "quit" {break}
         }
     }
@@ -126,10 +135,70 @@ struct VaultStage<'a>{
     pub index: String,
 }
 
-fn recheck_vault_status(temp: &mut Vec<Vault>) {
+fn recheck_vault_status(
+    temp: &mut Vec<Vault>
+) -> Result<(), anyhow::Error> {
     for i in temp {
         i.check_status();
     }
+    Ok(())
+}
+
+fn vault_remove_stage(
+    vaults: &mut Vec<Vault>,
+    config_path: &String,
+) -> Result<(), anyhow::Error> {
+    print!("{}[2J", 27 as char);
+    println!("##Delete Vault##");
+
+    let mut counter = 1;
+
+    // Define statuses
+    let LOCKED = format!("LOCKED").green();
+    let UNLOCKED = format!("UNLOCKED").yellow();
+    let MIXED = format!("MIXED").red();
+    let UNKNOWN = format!("STATUS UNKNOWN").red();
+    for i in vaults.clone() {
+        if i.status == 0 {println!("[{}] {} - {}", counter, i.name, LOCKED);}
+        else if i.status == 1 {println!("[{}] {} - {}", counter, i.name, UNLOCKED);}
+        else if i.status == 2 {println!("[{}] {} - {}", counter, i.name, MIXED);}
+        else {println!("[{}] {} - {}", counter, i.name, UNKNOWN);}
+        counter += 1;
+    }
+    let input = functions::get_input(">");
+    let index = input.parse::<i32>().unwrap() - 1;
+    let confirmation = functions::get_input(&format!
+        ("This vault will be unlocked if locked and deleted. Are you sure this is what you want? [Y/N]")[..]);
+    if confirmation.to_lowercase() == "y" {
+        let master_file_path = vaults[index as usize].master_file_path.clone();
+        if vaults[index as usize].status == 0 {
+            functions::unlock_lock_vault(master_file_path.clone(), false)?;
+        }
+        fs::remove_file(master_file_path)?;
+        vaults.remove(index as usize);
+        functions::write_vaults(vaults, config_path)?;
+    }
+    Ok(())
+}
+
+fn add_existing_vault(
+    vaults: &mut Vec<Vault>,
+    config_path: &String,
+) -> Result<(), anyhow::Error> {
+    print!("{}[2J", 27 as char);
+    println!("##Add Existing Vault##");
+    let path_to_create = functions::get_input("Enter path of masterfile.e: ");
+    let name = functions::get_input("Enter name for new vault: ");
+
+    if path_to_create.clone().ends_with("masterfile.e") && fs::metadata(path_to_create.clone())?.len() == 192 {
+        vaults.push(
+            Vault::new(name.clone(), path_to_create)
+        );
+        functions::write_vaults(vaults, config_path)?;
+    } else {
+        println!("Bad masterfile or path.");
+    }
+    Ok(())
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -137,6 +206,7 @@ fn main() -> Result<(), anyhow::Error> {
     let config_path = shellexpand::tilde("~/.rusty-vault/config").to_string();
     functions::check_config_file(&config_path)?;
     let mut vaults: Vec<Vault> = functions::read_config_file(&config_path);
+    recheck_vault_status(&mut vaults)?;
     main_menu(&mut vaults, &config_path)?;
     Ok(())
 }
