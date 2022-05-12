@@ -182,6 +182,8 @@ fn add_existing_vault(
     vaults: &mut Vec<Vault>,
     config_path: &String,
 ) -> Result<(), anyhow::Error> {
+    print!("{}[2J", 27 as char);
+    println!("##Add Existing Vault##");
     let path_to_create = functions::get_input("Enter path of masterfile.e: ");
     let name = functions::get_input("Enter name for new vault: ");
 
