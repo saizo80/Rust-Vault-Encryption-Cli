@@ -50,7 +50,7 @@ fn main_menu(
 [5] Quit")[..]);
             if input == "1" {
                 vault_unlock_stage(&vaults)?;
-                recheck_vault_status(vaults);
+                recheck_vault_status(vaults)?;
             }
             else if input == "2" {
                 functions::create_vault(vaults, config_file)?;
@@ -135,10 +135,13 @@ struct VaultStage<'a>{
     pub index: String,
 }
 
-fn recheck_vault_status(temp: &mut Vec<Vault>) {
+fn recheck_vault_status(
+    temp: &mut Vec<Vault>
+) -> Result<(), anyhow::Error> {
     for i in temp {
         i.check_status();
     }
+    Ok(())
 }
 
 fn vault_remove_stage(
@@ -203,6 +206,7 @@ fn main() -> Result<(), anyhow::Error> {
     let config_path = shellexpand::tilde("~/.rusty-vault/config").to_string();
     functions::check_config_file(&config_path)?;
     let mut vaults: Vec<Vault> = functions::read_config_file(&config_path);
+    recheck_vault_status(&mut vaults)?;
     main_menu(&mut vaults, &config_path)?;
     Ok(())
 }
