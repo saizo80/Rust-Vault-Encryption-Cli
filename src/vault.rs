@@ -1,6 +1,7 @@
 /// 
 /// Module for Vault object
 /// 
+#[allow(clippy::module_inception)]
 pub mod vault {
     // Import functions from file
     use crate::functions;

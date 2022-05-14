@@ -41,7 +41,7 @@ pub fn get_input(output: &str) -> String {
     // Read input into the line variable and call the 
     // function to clean the input and return the result
     std::io::stdin().read_line(&mut line).unwrap();
-    return clean_input(line);
+    clean_input(line)
 }
 
 ///
@@ -62,7 +62,7 @@ fn clean_input(mut input: String) -> String {
     if let Some('\'')=input.chars().next_back() {input.pop();}
     if let Some(' ')=input.chars().next_back() {input.pop();}
     if let Some('\'')=input.chars().next() {input.remove(0);}
-    return input;
+    input
 }
 
 ///
@@ -71,14 +71,14 @@ fn clean_input(mut input: String) -> String {
 /// Returns `argon2::Config<'a>`
 /// 
 pub fn argon2_config<'a>() -> argon2::Config<'a> {
-    return argon2::Config {
+    argon2::Config {
         variant: argon2::Variant::Argon2id,
         hash_length: 32,
         lanes: 8,
         mem_cost: 16 * 1024,
         time_cost: 8,
         ..Default::default()
-    };
+    }
 }
 
 ///
@@ -101,7 +101,7 @@ pub fn get_password_input(output: &str) -> String {
         }
         println!("Passwords do not match. Try again.");
     }
-    return _password1;
+    _password1
 }
 
 ///
@@ -112,8 +112,8 @@ pub fn get_password_input(output: &str) -> String {
 /// 
 /// Returns `bool`
 /// 
-pub fn check_file(path: &String) -> bool {
-    return fs::metadata(path).unwrap().file_type().is_file()
+pub fn check_file(path: &str) -> bool {
+    fs::metadata(path).unwrap().file_type().is_file()
 }
 
 ///
@@ -124,8 +124,8 @@ pub fn check_file(path: &String) -> bool {
 /// 
 /// Returns `bool`
 /// 
-pub fn check_dir(path: &String) -> bool {
-    return fs::metadata(path).unwrap().file_type().is_dir()
+pub fn check_dir(path: &str) -> bool {
+    fs::metadata(path).unwrap().file_type().is_dir()
 }
 
 ///
@@ -160,7 +160,7 @@ pub fn into_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
 /// Returns `Result<(), anyhow::Error>`
 /// 
 pub fn dir_recur(
-    path: &String, 
+    path: &str, 
     data: &masterfile::MasterfileData,
     force_encrypt: bool,
 ) -> Result<(), anyhow::Error> {
@@ -171,7 +171,7 @@ pub fn dir_recur(
                 // Clone data for moving to new thread
                 let tx = x.clone();
                 let tdata = data.clone();
-                let tbool = force_encrypt.clone();
+                let tbool = force_encrypt;
 
                 // Increment the global thread count
                 GLOBAL_THREAD_COUNT.fetch_add(1, Ordering::SeqCst);
@@ -215,7 +215,7 @@ pub fn dir_recur(
 /// Returns `Result<(), anyhow::Error>`
 /// 
 fn folder_recur(
-    path: &String, 
+    path: &str, 
     data: &masterfile::MasterfileData,
     force_encrypt: bool,
 ) -> Result<(), anyhow::Error> {
@@ -223,11 +223,11 @@ fn folder_recur(
         for path_inv in paths {
             let x = path_inv?.path().into_os_string().into_string().unwrap();
             if check_dir(&x) {
-                folder_recur(&x, &data, force_encrypt)?;
+                folder_recur(&x, data, force_encrypt)?;
                 if x.ends_with(".encrypted") && !force_encrypt{
-                    encryptionFunctions::decrypt_foldername(&x, &data)?;
+                    encryptionFunctions::decrypt_foldername(&x, data)?;
                 } else if !x.ends_with(".encrypted") && force_encrypt{
-                    encryptionFunctions::encrypt_foldername(&x, &data)?;
+                    encryptionFunctions::encrypt_foldername(&x, data)?;
                 }
             }
         }
@@ -240,7 +240,7 @@ fn folder_recur(
 /// # Arguments
 /// - `config_path` string that points to the config file
 /// 
-pub fn check_config_file(config_path: &String) -> Result<(), anyhow::Error> {
+pub fn check_config_file(config_path: &str) -> Result<(), anyhow::Error> {
     if !Path::new(&config_path).exists() {
         if !Path::new(&config_path.strip_suffix("/config").unwrap()).exists() {
             fs::create_dir(&config_path.strip_suffix("/config").unwrap())?;
@@ -282,26 +282,24 @@ pub fn read_config_file(config_path: &str) -> Vec<Vault> {
     let mut vaults: Vec<Vault> = Vec::new();
 
     if let Ok(lines) = read_lines(config_path) {
-        for line in lines {
-            if let Ok(data) = line {
-                // data is a string, split by comma
-                let datal = data.split(",").collect::<Vec<&str>>();
+        for line in lines.flatten() {
+             
+            // data is a string, split by comma
+            let datal = line.split(',').collect::<Vec<&str>>();
 
-                // Make sure data is appropriate length
-                if &datal.len() > &1 {
-                    // Create a new Vault object and push into the Vector
-                    // datal[0] will be the name
-                    // datal[1] will be the path 
-                    vaults.push(
-                        Vault::new(String::from(datal[0]), 
-                        String::from(datal[1])
-                    )
-                    )
-                }
-            }
+            // Make sure data is appropriate length
+            if datal.len() > 1 {
+                // Create a new Vault object and push into the Vector
+                // datal[0] will be the name
+                // datal[1] will be the path 
+                vaults.push(
+                    Vault::new(String::from(datal[0]), 
+                    String::from(datal[1]))
+                )
+            }  
         }
     }
-    return vaults;
+    vaults
 }
 
 ///
@@ -318,7 +316,7 @@ pub fn read_config_file(config_path: &str) -> Vec<Vault> {
 /// 
 pub fn create_vault(
     vaults: &mut Vec<Vault>,
-    config_path: &String,
+    config_path: &str,
 ) -> Result<(), anyhow::Error> {
     // Clear terminal and print the header
     print!("{}[2J", 27 as char);
@@ -330,7 +328,7 @@ pub fn create_vault(
     let password = get_password_input("Enter password for vault: ");
 
     // Format string with masterfile and add new vault to list
-    if path_to_create.ends_with("/") {
+    if path_to_create.ends_with('/') {
         let master_file_path = format!("{}masterfile.e", &path_to_create);
         vaults.push(
             Vault::new(name.clone(), master_file_path)
@@ -343,7 +341,7 @@ pub fn create_vault(
     }
 
     // Create the masterfile with the password 
-    masterfile::create_masterfile(&path_to_create.to_string(), &password.to_string())?;
+    masterfile::create_masterfile(&path_to_create, &password)?;
 
     // Open the config file and write the vault data
     let mut config_file = fs::OpenOptions::new()
@@ -416,7 +414,7 @@ pub fn unlock_lock_vault(
 /// 
 /// Returns `u8`
 /// 
-pub fn check_vault_status(path: &String) -> u8 {
+pub fn check_vault_status(path: &str) -> u8 {
     // Initialize variables
     let paths = fs::read_dir(path).unwrap();
     let mut en = 0; // Counter for encrypted files
@@ -439,19 +437,19 @@ pub fn check_vault_status(path: &String) -> u8 {
         }
         // Return the mixed if there are encrypted and plaintext files
         if en != 0 && de != 0 {
-            return 2;
+            2
         }
         // Return decrypted if there are no encrypted and more than 0 plaintext
         else if en == 0 && de > 0 {
-            return 1;
+            1
         }
         // Return encrypted if there are no plaintext and more than 0 encrypted
         else if en > 0 && de == 0 {
-            return 0;
+            0
         }
         // Else return Error number
         else {
-            return 3;
+            3
         }
 }
 
@@ -467,8 +465,8 @@ pub fn check_vault_status(path: &String) -> u8 {
 /// Returns `Result<(), anyhow::Error>`
 /// 
 pub fn write_vaults(
-    vaults: &Vec<Vault>,
-    config_path: &String,
+    vaults: &[Vault],
+    config_path: &str,
 ) -> Result<(), anyhow::Error> {
     // Open the config file with options
     let mut config_file = fs::OpenOptions::new()
@@ -478,7 +476,7 @@ pub fn write_vaults(
 
     // Write all the data in the vaults
     for i in vaults {
-        config_file.write(format!
+        config_file.write_all(format!
             ("{},{}", i.name, i.master_file_path)
             .as_bytes())?;
     }

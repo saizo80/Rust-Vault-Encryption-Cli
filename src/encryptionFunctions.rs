@@ -4,7 +4,7 @@ use chacha20poly1305::{
     aead::{stream, Aead, NewAead, generic_array::GenericArray},
     XChaCha20Poly1305,
 };
-use chacha20poly1305;
+
 use rand::{rngs::OsRng, RngCore,};
 use std::{
     fs,
@@ -12,7 +12,7 @@ use std::{
     io::{Read, Write},
 };
 use zeroize::Zeroize;
-use hex;
+
 
 // Import functions from files
 use crate::{
@@ -38,7 +38,7 @@ const BUFFER_LEN: usize = 500;
 /// 
 pub fn encrypt_filename(
     source_file_path: &str,
-    key: &Vec<u8>,
+    key: &[u8],
     nonce: &[u8; 19],
 ) -> String {
     // Add an extra 5 bytes to the end of the nonce for use in standalone encryption
@@ -51,12 +51,12 @@ pub fn encrypt_filename(
     };
 
     // Split the path and get the filename
-    let mut split_path = source_file_path.split("/").collect::<Vec<&str>>();
+    let mut split_path = source_file_path.split('/').collect::<Vec<&str>>();
     let path_size = split_path.len();
     let filename = split_path[path_size-1];
 
     // Prepare the generic arrays and aead
-    let key_ga = GenericArray::clone_from_slice(&key[..]);
+    let key_ga = GenericArray::clone_from_slice(key);
     let nonce_ga = GenericArray::clone_from_slice(&whole_nonce[..]);
     let aead = XChaCha20Poly1305::new(&key_ga);
 
@@ -64,11 +64,11 @@ pub fn encrypt_filename(
     let encoded = aead.encrypt(&nonce_ga, filename.as_bytes().as_ref()).expect("Encryption failure");
 
     // Replace the filename in the split path
-    let encoded_str = format!("{}.encrypted", hex::encode(encoded.clone()));
+    let encoded_str = format!("{}.encrypted", hex::encode(encoded));
     split_path[path_size-1] = &encoded_str;
 
     // Join the split path and return
-    return split_path.join("/");
+    split_path.join("/")
 }
 
 ///
@@ -86,7 +86,7 @@ pub fn encrypt_filename(
 /// 
 pub fn decrypt_filename(
     encrypted_file_path: &str,
-    key: &Vec<u8>,
+    key: &[u8],
     nonce: &[u8; 19],
 ) -> String {
     // Add an extra 5 bytes to the end of the nonce for use in standalone encryption
@@ -99,7 +99,7 @@ pub fn decrypt_filename(
     };
 
     // Split the path and get the filename
-    let mut split_path = encrypted_file_path.split("/").collect::<Vec<&str>>();
+    let mut split_path = encrypted_file_path.split('/').collect::<Vec<&str>>();
     let path_size = split_path.len();
     let mut encrypted_filename = String::from(split_path[path_size-1]);
     
@@ -108,10 +108,10 @@ pub fn decrypt_filename(
 
     // Get the bytes to decode
     // TODO: Consider changing to simple .to_bytes
-    let to_decrypt = hex::decode(encrypted_filename.clone()).unwrap();
+    let to_decrypt = hex::decode(encrypted_filename).unwrap();
 
     // Prepare generic arrays and aead
-    let key_ga = GenericArray::clone_from_slice(&key[..]);
+    let key_ga = GenericArray::clone_from_slice(key);
     let nonce_ga = GenericArray::clone_from_slice(&whole_nonce[..]);
     let aead = XChaCha20Poly1305::new(&key_ga);
 
@@ -120,10 +120,10 @@ pub fn decrypt_filename(
 
     // Replace the encrypted filename in the split path
     let decoded_str = std::str::from_utf8(&decoded).unwrap();
-    split_path[path_size-1] = &decoded_str;
+    split_path[path_size-1] = decoded_str;
 
     // Join the path and return
-    return split_path.join("/");
+    split_path.join("/")
 }
 
 /// 
@@ -163,11 +163,11 @@ pub fn encrypt_file(
     // Open the source file and create the dist file with the 
     // encrypted filename from the function call
     let mut source_file = File::open(source_file_path)?;
-    let mut dist_file = File::create(encrypt_filename(&source_file_path, &key, &nonce))?;
+    let mut dist_file = File::create(encrypt_filename(source_file_path, &key, &nonce))?;
 
     // Write the salt and nonce in the dist file
-    dist_file.write(&salt)?;
-    dist_file.write(&nonce)?;
+    dist_file.write_all(&salt)?;
+    dist_file.write_all(&nonce)?;
     
     let mut buffer = [0u8; BUFFER_LEN];
 
@@ -180,12 +180,12 @@ pub fn encrypt_file(
             let ciphertext = stream_encryptor
                 .encrypt_next(buffer.as_slice())
                 .map_err(|err| anyhow!("Encrypting large file: {}", err))?;
-            dist_file.write(&ciphertext)?;
+            dist_file.write_all(&ciphertext)?;
         } else {
             let ciphertext = stream_encryptor
                 .encrypt_last(&buffer[..read_count])
                 .map_err(|err| anyhow!("Encrypting large file: {}", err))?;
-            dist_file.write(&ciphertext)?;
+            dist_file.write_all(&ciphertext)?;
             break;
         }
     }
@@ -248,7 +248,7 @@ pub fn decrypt_file(
     let mut buffer = [0u8; BUFFER_LEN+16];
 
     // Create the dist file with the decrypted filename function call
-    let mut dist_file = File::create(decrypt_filename(&encrypted_file_path, &key, &nonce))?;
+    let mut dist_file = File::create(decrypt_filename(encrypted_file_path, &key, &nonce))?;
 
     // Read bytes from the encrypted file, decrypt, and write to destination file
     loop {
@@ -258,7 +258,7 @@ pub fn decrypt_file(
             let plaintext = stream_decryptor
                 .decrypt_next(buffer.as_slice())
                 .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
-            dist_file.write(&plaintext)?;
+            dist_file.write_all(&plaintext)?;
         } 
         else if read_count == 0 {
             break;
@@ -267,7 +267,7 @@ pub fn decrypt_file(
             let plaintext = stream_decryptor
                 .decrypt_last(&buffer[..read_count])
                 .map_err(|err| anyhow!("Decrypting large file: {}", err))?;
-            dist_file.write(&plaintext)?;
+            dist_file.write_all(&plaintext)?;
             break;
         }
     }
@@ -293,7 +293,7 @@ pub fn decrypt_file(
 /// Returns `Result<(), anyhow::Error>`
 /// 
 pub fn encrypt_foldername(
-    source_path: &String, 
+    source_path: &str, 
     data: &masterfile::MasterfileData,
 ) -> Result<(), anyhow::Error> {
     // Create the hashing config and create the key
@@ -301,10 +301,10 @@ pub fn encrypt_foldername(
     let key = argon2::hash_raw(&data.master_key, &data.folder_salt, &argon2_config)?;
 
     // Split the path and get the foldername
-    let mut split_path = source_path.split("/").collect::<Vec<&str>>();
+    let mut split_path = source_path.split('/').collect::<Vec<&str>>();
     let path_size = split_path.len();
     let mut foldername = split_path[path_size-1];
-    if foldername == "" {
+    if foldername.is_empty() {
         foldername = split_path[path_size-2];
     }
 
@@ -317,8 +317,8 @@ pub fn encrypt_foldername(
     let encoded = aead.encrypt(&nonce_ga, foldername.as_bytes().as_ref()).expect("Encryption failure");
 
     // Replace the foldername in the split path
-    let encoded_str = format!("{}.encrypted", hex::encode(encoded.clone()));
-    if split_path[path_size-1] == ""{
+    let encoded_str = format!("{}.encrypted", hex::encode(encoded));
+    if split_path[path_size-1].is_empty(){
         split_path[path_size-2] = &encoded_str;
     } else {
         split_path[path_size-1] = &encoded_str;
@@ -343,7 +343,7 @@ pub fn encrypt_foldername(
 /// Returns `Result<(), anyhow::Error>`
 /// 
 pub fn decrypt_foldername(
-    encrypted_path: &String,
+    encrypted_path: &str,
     data: &masterfile::MasterfileData,
 ) -> Result<(), anyhow::Error> {
     // Create the hashing config and the key
@@ -351,10 +351,10 @@ pub fn decrypt_foldername(
     let key = argon2::hash_raw(&data.master_key, &data.folder_salt, &argon2_config)?;
 
     // Split the path and get the encrypted foldername
-    let mut split_path = encrypted_path.split("/").collect::<Vec<&str>>();
+    let mut split_path = encrypted_path.split('/').collect::<Vec<&str>>();
     let path_size = split_path.len();
     let mut encrypted_foldername = String::from(split_path[path_size-1]);
-    if encrypted_foldername == "" {
+    if encrypted_foldername.is_empty() {
         encrypted_foldername = String::from(split_path[path_size-2]);
     }
 
@@ -364,7 +364,7 @@ pub fn decrypt_foldername(
 
     // Get bytes from encrypted foldername
     // TODO: Consider replacing with .to_bytes
-    let to_decrypt = hex::decode(encrypted_foldername.clone()).unwrap();
+    let to_decrypt = hex::decode(encrypted_foldername).unwrap();
 
     // Prepare the generic arrays and aead
     let key_ga = GenericArray::clone_from_slice(&key[..]);
@@ -376,10 +376,10 @@ pub fn decrypt_foldername(
     let decoded_str = std::str::from_utf8(&decoded).unwrap();
 
     // Replace the encrypted foldername in the split path
-    if split_path[path_size-1] == ""{
-        split_path[path_size-2] = &decoded_str;
+    if split_path[path_size-1].is_empty(){
+        split_path[path_size-2] = decoded_str;
     } else {
-        split_path[path_size-1] = &decoded_str;
+        split_path[path_size-1] = decoded_str;
     }
 
     // Join the path and rename the folder
