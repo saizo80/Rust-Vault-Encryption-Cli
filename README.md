@@ -20,7 +20,3 @@ Upon launching, if there are vaults with mixed files (encrypted and unencrypted)
 
 ## Uninstallation
 Simply run `cargo uninstall rusty-vault` in the terminal and cargo will take care of uninstalling the binary.
-
-## TODO
-- [x] Write comments and document code
-- [ ] Make option to return to main menu in branching menus
