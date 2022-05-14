@@ -50,8 +50,7 @@ pub mod vault {
                 .strip_suffix("/masterfile.e").unwrap());
 
             // Set initial encryption status
-            // TODO: Status is immediated rechecked so set this as a simple initialized variable
-            let status = functions::check_vault_status(&path);
+            let status = 4;
             Vault {
                 name,
                 master_file_path,
