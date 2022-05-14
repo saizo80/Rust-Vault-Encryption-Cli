@@ -13,6 +13,10 @@ use zeroize::Zeroize;
 // Import functions from files
 use crate::functions;
 
+// TODO: Remove this
+#[allow(unused_imports)]
+#[allow(unused_assignments)]
+
 ///
 /// Define struct to hold the decrypted data from the masterfile.
 /// # Data
