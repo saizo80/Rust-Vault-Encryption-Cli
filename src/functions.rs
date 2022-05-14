@@ -321,6 +321,14 @@ pub fn create_vault(
     println!("##Create Vault##");
 
     // Get all the necessary inputs
+    let path_to_create = get_input("Enter path for new vault or quit to return to Main Menu: ")?;
+
+    // Check for return to main menu
+    if path_to_create.to_lowercase() == "quit" || 
+        path_to_create.to_lowercase() == "q" {
+            return Ok(())
+    }
+    
     let path_to_create = get_input("Enter path for new vault: ")?;
     let name = get_input("Enter name for new vault: ")?;
     let password = get_password_input("Enter password for vault: ")?;
