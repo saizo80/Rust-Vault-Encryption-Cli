@@ -70,7 +70,7 @@ pub mod vault {
                 println!("##Warning##");
                 let input = functions::get_input(
                     &format!("Status of vault [{}] is MIXED. Encrypted unencrypted files? [Y/N]\nWarning leaving unencrypted files WILL cause problems",
-                     self.name)[..]);
+                     self.name)[..])?;
                 if input.to_lowercase() == "y" {
                     functions::unlock_lock_vault
                         (self.master_file_path.clone(), true)?;

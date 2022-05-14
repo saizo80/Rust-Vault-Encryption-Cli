@@ -113,8 +113,7 @@ pub fn create_masterfile(
 pub fn read_masterfile(
     path: &str, 
     password: &str,
-) -> MasterfileData {
-    //TODO: Return Result<MasterfileData, anyhow::Error>
+) -> Result<MasterfileData, anyhow::Error> {
     
     // Initialize all byte arrays
     let mut encrypted_folder_salt = [0u8; 48];
@@ -149,9 +148,9 @@ pub fn read_masterfile(
     key.zeroize();
     masterfile_salt.zeroize();
     masterfile_nonce.zeroize();
-    MasterfileData {
+    Ok(MasterfileData {
         master_key: functions::into_array(master_key), 
         folder_salt: functions::into_array(folder_salt), 
         folder_nonce: functions::into_array(folder_nonce),
-    }
+    })
 }

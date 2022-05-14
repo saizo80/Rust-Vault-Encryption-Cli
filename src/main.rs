@@ -52,7 +52,7 @@ fn main_menu(
 [2] Create Vault
 [3] Add Existing Vault
 [4] Delete Vault
-[5] Quit");
+[5] Quit")?;
             if input == "1" {
                 // Call function to lock/unlock vaults and recheck the file status
                 vault_unlock_stage(vaults)?;
@@ -73,7 +73,7 @@ fn main_menu(
         else {
             let input = functions::get_input("[1] Create Vault
 [2] Add Existing Vault
-[3] Quit");
+[3] Quit")?;
             if input == "1" {
                 functions::create_vault(vaults, config_file)?;
             }
@@ -129,7 +129,7 @@ fn vault_unlock_stage(
         );
         counter += 1;
     }
-    let input = functions::get_input(">");
+    let input = functions::get_input(">")?;
     for i in temp {
         if i.index == input {
             if i.vault_ref.status == 1 {
@@ -219,11 +219,11 @@ fn vault_remove_stage(
     }
 
     // Get input and confirmation for deletion
-    let input = functions::get_input(">");
+    let input = functions::get_input(">")?;
     let index = input.parse::<i32>().unwrap() - 1;
     let confirmation = functions::get_input(&format!
         ("The vault {} will be unlocked if locked and deleted. Are you sure this is what you want? [Y/N]", 
-            vaults[index as usize].name)[..]);
+            vaults[index as usize].name)[..])?;
     
     if confirmation.to_lowercase() == "y" {
         // Get a copy of the master file path
@@ -262,8 +262,8 @@ fn add_existing_vault(
     println!("##Add Existing Vault##");
 
     // Get the path to the masterfile.e and the name of the vault
-    let path_to_create = functions::get_input("Enter path of masterfile.e: ");
-    let name = functions::get_input("Enter name for new vault: ");
+    let path_to_create = functions::get_input("Enter path of masterfile.e: ")?;
+    let name = functions::get_input("Enter name for new vault: ")?;
 
     // Check that the path is correct and the size of the file is correct (192 bytes)
     if path_to_create.ends_with("masterfile.e") && fs::metadata(path_to_create.clone())?.len() == 192 {
