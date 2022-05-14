@@ -129,7 +129,14 @@ fn vault_unlock_stage(
         );
         counter += 1;
     }
+
+    // Return to main menu check
+    println!("[{}] Return to Main Menu", counter);
     let input = functions::get_input(">");
+    if input == counter.to_string() || input.to_lowercase() == "q" 
+        || input.to_lowercase() == "quit" {
+            return Ok(())
+    }
     for i in temp {
         if i.index == input {
             if i.vault_ref.status == 1 {
@@ -217,9 +224,17 @@ fn vault_remove_stage(
         else {println!("[{}] {} - {}", counter, i.name, UNKNOWN);}
         counter += 1;
     }
+    println!("[{}] Return to Main Menu", counter);
 
     // Get input and confirmation for deletion
     let input = functions::get_input(">");
+
+    // Check for return to Main Menu
+    if input == counter.to_string() || input.to_lowercase() == "q"
+        || input.to_lowercase() == "quit" {
+            return Ok(())
+    }
+
     let index = input.parse::<i32>().unwrap() - 1;
     let confirmation = functions::get_input(&format!
         ("The vault {} will be unlocked if locked and deleted. Are you sure this is what you want? [Y/N]", 
@@ -262,7 +277,12 @@ fn add_existing_vault(
     println!("##Add Existing Vault##");
 
     // Get the path to the masterfile.e and the name of the vault
-    let path_to_create = functions::get_input("Enter path of masterfile.e: ");
+    let path_to_create = functions::get_input("Enter path of masterfile.e or quit to return to Main Menu: ");
+    
+    // Check for return to main menu
+    if path_to_create.to_lowercase() == "q" || path_to_create.to_lowercase() == "quit" {
+        return Ok(())
+    }
     let name = functions::get_input("Enter name for new vault: ");
 
     // Check that the path is correct and the size of the file is correct (192 bytes)
