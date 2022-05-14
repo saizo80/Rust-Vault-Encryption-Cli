@@ -30,8 +30,7 @@ static GLOBAL_THREAD_COUNT: AtomicUsize = AtomicUsize::new(0);
 /// 
 /// Returns `String`
 /// 
-pub fn get_input(output: &str) -> String {
-    // TODO Return Result<String, anyhow::Error>
+pub fn get_input(output: &str) -> Result<String, anyhow::Error> {
     // Instantiate the String for reading the line
     let mut line = String::new();
     
@@ -53,7 +52,7 @@ pub fn get_input(output: &str) -> String {
 /// 
 /// Returns `String`
 /// 
-fn clean_input(mut input: String) -> String {
+fn clean_input(mut input: String) -> Result<String, anyhow::Error> {
     // Remove carriage return characters
     if let Some('\n')=input.chars().next_back() {input.pop();}
     if let Some('\r')=input.chars().next_back() {input.pop();}
@@ -62,7 +61,7 @@ fn clean_input(mut input: String) -> String {
     if let Some('\'')=input.chars().next_back() {input.pop();}
     if let Some(' ')=input.chars().next_back() {input.pop();}
     if let Some('\'')=input.chars().next() {input.remove(0);}
-    input
+    Ok(input)
 }
 
 ///
@@ -90,8 +89,7 @@ pub fn argon2_config<'a>() -> argon2::Config<'a> {
 /// 
 /// Returns `String`
 /// 
-pub fn get_password_input(output: &str) -> String {
-    // TODO Return Result<String, anyhow::Error>
+pub fn get_password_input(output: &str) -> Result<String, anyhow::Error> {
     let mut _password1 = String::new();
     loop {
         _password1 = rpassword::prompt_password(output).unwrap();
@@ -101,7 +99,7 @@ pub fn get_password_input(output: &str) -> String {
         }
         println!("Passwords do not match. Try again.");
     }
-    _password1
+    Ok(_password1)
 }
 
 ///
@@ -323,9 +321,9 @@ pub fn create_vault(
     println!("##Create Vault##");
 
     // Get all the necessary inputs
-    let path_to_create = get_input("Enter path for new vault: ");
-    let name = get_input("Enter name for new vault: ");
-    let password = get_password_input("Enter password for vault: ");
+    let path_to_create = get_input("Enter path for new vault: ")?;
+    let name = get_input("Enter name for new vault: ")?;
+    let password = get_password_input("Enter password for vault: ")?;
 
     // Format string with masterfile and add new vault to list
     if path_to_create.ends_with('/') {
@@ -371,7 +369,7 @@ pub fn unlock_lock_vault(
     // Read in the data from the masterfile and store in a data structure
     let masterfile_data = 
         masterfile::read_masterfile(&masterfile_path, 
-        &get_password_input("Enter vault password: "));
+        &get_password_input("Enter vault password: ")?)?;
     
     // Get the top of the directory tree
     let top_dir_path = masterfile_path.strip_suffix("/masterfile.e").unwrap().to_string();
