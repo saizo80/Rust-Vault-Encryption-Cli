@@ -22,7 +22,7 @@ use colored::Colorize;
 use std::{
     fs, 
 };
-use shellexpand;
+
 
 ///
 /// Display the main menu in a loop and calls
@@ -37,7 +37,7 @@ use shellexpand;
 /// 
 fn main_menu(
     vaults: &mut Vec<Vault>,
-    config_file: &String,
+    config_file: &str,
 ) -> Result<(), anyhow::Error>{
     // Start the main loop
     loop {
@@ -47,15 +47,15 @@ fn main_menu(
 
         // Check if there are loaded vaults, if not display alternate menu
         // to allow vault creation or importation
-        if &vaults.len() > &0 {
-            let input: String = functions::get_input(&format!("[1] Lock/Unlock Vault
+        if !vaults.is_empty() {
+            let input: String = functions::get_input("[1] Lock/Unlock Vault
 [2] Create Vault
 [3] Add Existing Vault
 [4] Delete Vault
-[5] Quit")[..]);
+[5] Quit");
             if input == "1" {
                 // Call function to lock/unlock vaults and recheck the file status
-                vault_unlock_stage(&vaults)?;
+                vault_unlock_stage(vaults)?;
                 recheck_vault_status(vaults)?;
             }
             else if input == "2" {
@@ -71,9 +71,9 @@ fn main_menu(
                 input.to_lowercase() == "quit" {break}
         }
         else {
-            let input = functions::get_input(&format!("[1] Create Vault
+            let input = functions::get_input("[1] Create Vault
 [2] Add Existing Vault
-[3] Quit")[..]);
+[3] Quit");
             if input == "1" {
                 functions::create_vault(vaults, config_file)?;
             }
@@ -96,17 +96,17 @@ fn main_menu(
 /// Returns `Result<(), anyhow::Error>`
 /// 
 fn vault_unlock_stage(
-    vaults: &Vec<Vault>,
+    vaults: &[Vault],
 ) -> Result<(), anyhow::Error> {
     // Clear the terminal and print header
     print!("{}[2J", 27 as char);
     println!("##Lock/Unlock Vault##");
 
     // Define statuses
-    let LOCKED = format!("LOCKED").green();
-    let UNLOCKED = format!("UNLOCKED").yellow();
-    let MIXED = format!("MIXED").red();
-    let UNKNOWN = format!("STATUS UNKNOWN").red();
+    let LOCKED = "LOCKED".to_string().green();
+    let UNLOCKED = "UNLOCKED".to_string().yellow();
+    let MIXED = "MIXED".to_string().red();
+    let UNKNOWN = "STATUS UNKNOWN".to_string().red();
 
     // Instantiate a container to hold an index and a reference to 
     // the vault it refers to 
@@ -194,7 +194,7 @@ fn recheck_vault_status(
 /// 
 fn vault_remove_stage(
     vaults: &mut Vec<Vault>,
-    config_path: &String,
+    config_path: &str,
 ) -> Result<(), anyhow::Error> {
     // Clear the terminal and prints the header
     print!("{}[2J", 27 as char);
@@ -204,10 +204,10 @@ fn vault_remove_stage(
     let mut counter = 1;
 
     // Define statuses
-    let LOCKED = format!("LOCKED").green();
-    let UNLOCKED = format!("UNLOCKED").yellow();
-    let MIXED = format!("MIXED").red();
-    let UNKNOWN = format!("STATUS UNKNOWN").red();
+    let LOCKED = "LOCKED".to_string().green();
+    let UNLOCKED = "UNLOCKED".to_string().yellow();
+    let MIXED = "MIXED".to_string().red();
+    let UNKNOWN = "STATUS UNKNOWN".to_string().red();
 
     // Print vaults and their status
     for i in vaults.clone() {
@@ -255,7 +255,7 @@ fn vault_remove_stage(
 /// Returns `Result<(), anyhow::Error>`
 fn add_existing_vault(
     vaults: &mut Vec<Vault>,
-    config_path: &String,
+    config_path: &str,
 ) -> Result<(), anyhow::Error> {
     // Clear the terminal and print the header
     print!("{}[2J", 27 as char);
@@ -266,10 +266,10 @@ fn add_existing_vault(
     let name = functions::get_input("Enter name for new vault: ");
 
     // Check that the path is correct and the size of the file is correct (192 bytes)
-    if path_to_create.clone().ends_with("masterfile.e") && fs::metadata(path_to_create.clone())?.len() == 192 {
+    if path_to_create.ends_with("masterfile.e") && fs::metadata(path_to_create.clone())?.len() == 192 {
         // Push the new info to the vaults array and write the array to the config file
         vaults.push(
-            Vault::new(name.clone(), path_to_create)
+            Vault::new(name, path_to_create)
         );
         functions::write_vaults(vaults, config_path)?;
     } else {

@@ -42,8 +42,8 @@ pub struct MasterfileData {
 /// Returns `Result<(), anyhow::Error>`
 /// 
 pub fn create_masterfile(
-    path: &String, 
-    password: &String,
+    path: &str, 
+    password: &str,
 ) -> Result<(), anyhow::Error> {
     // Creates arrays for different data
     let mut folder_salt = [0u8; 32];
@@ -67,26 +67,26 @@ pub fn create_masterfile(
     let aead = XChaCha20Poly1305::new(&key_ga);
     
     // Create the masterfile and write encrypted data
-    if !path.ends_with("/") {
+    if !path.ends_with('/') {
         let mut masterfile = fs::File::create
             (format!("{}/masterfile.e", path))?;
 
         // Write master salt and nonce unencrypted
         // for later decryption
-        masterfile.write(&master_salt)?;
-        masterfile.write(&master_nonce)?;
-        masterfile.write(&aead.encrypt(&nonce_ga, master_key.as_ref()).expect("Failure")[..])?;
-        masterfile.write(&aead.encrypt(&nonce_ga, folder_salt.as_ref()).expect("Failure")[..])?;
-        masterfile.write(&aead.encrypt(&nonce_ga, folder_nonce.as_ref()).expect("Failure")[..])?;
+        masterfile.write_all(&master_salt)?;
+        masterfile.write_all(&master_nonce)?;
+        masterfile.write_all(&aead.encrypt(&nonce_ga, master_key.as_ref()).expect("Failure")[..])?;
+        masterfile.write_all(&aead.encrypt(&nonce_ga, folder_salt.as_ref()).expect("Failure")[..])?;
+        masterfile.write_all(&aead.encrypt(&nonce_ga, folder_nonce.as_ref()).expect("Failure")[..])?;
     }
     else {
         let mut masterfile = fs::File::create
             (format!("{}masterfile.e", path))?;
-        masterfile.write(&master_salt)?;
-        masterfile.write(&master_nonce)?;
-        masterfile.write(&aead.encrypt(&nonce_ga, master_key.as_ref()).expect("Failure")[..])?;
-        masterfile.write(&aead.encrypt(&nonce_ga, folder_salt.as_ref()).expect("Failure")[..])?;
-        masterfile.write(&aead.encrypt(&nonce_ga, folder_nonce.as_ref()).expect("Failure")[..])?;
+        masterfile.write_all(&master_salt)?;
+        masterfile.write_all(&master_nonce)?;
+        masterfile.write_all(&aead.encrypt(&nonce_ga, master_key.as_ref()).expect("Failure")[..])?;
+        masterfile.write_all(&aead.encrypt(&nonce_ga, folder_salt.as_ref()).expect("Failure")[..])?;
+        masterfile.write_all(&aead.encrypt(&nonce_ga, folder_nonce.as_ref()).expect("Failure")[..])?;
     }
 
     // Zerioize all sensitive variables in memory
@@ -111,8 +111,8 @@ pub fn create_masterfile(
 /// Returns `MasterfileData`
 /// 
 pub fn read_masterfile(
-    path: &String, 
-    password: &String,
+    path: &str, 
+    password: &str,
 ) -> MasterfileData {
     //TODO: Return Result<MasterfileData, anyhow::Error>
     
@@ -127,11 +127,11 @@ pub fn read_masterfile(
     let mut masterfile = fs::File::open(&path).unwrap();
     
     // Read all data in 
-    masterfile.read(&mut masterfile_salt).unwrap();
-    masterfile.read(&mut masterfile_nonce).unwrap();
-    masterfile.read(&mut encrypted_master_key).unwrap();
-    masterfile.read(&mut encrypted_folder_salt).unwrap();
-    masterfile.read(&mut encrypted_folder_nonce).unwrap();
+    masterfile.read_exact(&mut masterfile_salt).unwrap();
+    masterfile.read_exact(&mut masterfile_nonce).unwrap();
+    masterfile.read_exact(&mut encrypted_master_key).unwrap();
+    masterfile.read_exact(&mut encrypted_folder_salt).unwrap();
+    masterfile.read_exact(&mut encrypted_folder_nonce).unwrap();
 
     // Initialize aead and nonce_ga
     let argon2_config = functions::argon2_config();
@@ -149,9 +149,9 @@ pub fn read_masterfile(
     key.zeroize();
     masterfile_salt.zeroize();
     masterfile_nonce.zeroize();
-    return MasterfileData {
+    MasterfileData {
         master_key: functions::into_array(master_key), 
         folder_salt: functions::into_array(folder_salt), 
         folder_nonce: functions::into_array(folder_nonce),
-    };
+    }
 }
