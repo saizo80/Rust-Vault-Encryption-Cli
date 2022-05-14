@@ -285,7 +285,7 @@ fn add_existing_vault(
     if path_to_create.to_lowercase() == "q" || path_to_create.to_lowercase() == "quit" {
         return Ok(())
     }
-    let name = functions::get_input("Enter name for new vault: ");
+
     let path_to_create = functions::get_input("Enter path of masterfile.e: ")?;
     let name = functions::get_input("Enter name for new vault: ")?;
 
