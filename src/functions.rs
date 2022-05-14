@@ -376,10 +376,7 @@ pub fn unlock_lock_vault(
         &get_password_input("Enter vault password: "));
     
     // Get the top of the directory tree
-    // TODO: Change this to strip_suffix("masterfile.e")
-    let mut top_dir = masterfile_path.split("/").collect::<Vec<&str>>();
-    top_dir.pop();
-    let top_dir_path = top_dir.join("/");
+    let top_dir_path = masterfile_path.strip_suffix("/masterfile.e").unwrap().to_string();
     
     // This process tends to take some time so print the process steps
     // out in the terminal

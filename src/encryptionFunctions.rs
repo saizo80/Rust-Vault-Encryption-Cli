@@ -104,8 +104,7 @@ pub fn decrypt_filename(
     let mut encrypted_filename = String::from(split_path[path_size-1]);
     
     // Remove the '.encrypted' from the end of the filename
-    // TODO: Replace with .strip_suffix
-    encrypted_filename.truncate(encrypted_filename.len()-10);
+    encrypted_filename = encrypted_filename.strip_suffix(".encrypted").unwrap().to_string();
 
     // Get the bytes to decode
     // TODO: Consider changing to simple .to_bytes
@@ -360,8 +359,8 @@ pub fn decrypt_foldername(
     }
 
     // Remove the '.encrypted' from the foldername
-    // TODO: Replace with .strip_suffix
-    encrypted_foldername.truncate(encrypted_foldername.len()-10);
+    encrypted_foldername = encrypted_foldername
+        .strip_suffix(".encrypted").unwrap().to_string();
 
     // Get bytes from encrypted foldername
     // TODO: Consider replacing with .to_bytes
