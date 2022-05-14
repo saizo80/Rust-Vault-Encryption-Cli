@@ -107,7 +107,7 @@ pub fn decrypt_filename(
     encrypted_filename = encrypted_filename.strip_suffix(".encrypted").unwrap().to_string();
 
     // Get the bytes to decode
-    // TODO: Consider changing to simple .to_bytes
+    // has to use hex, cannot use as_bytes
     let to_decrypt = hex::decode(encrypted_filename).unwrap();
 
     // Prepare generic arrays and aead
@@ -363,7 +363,7 @@ pub fn decrypt_foldername(
         .strip_suffix(".encrypted").unwrap().to_string();
 
     // Get bytes from encrypted foldername
-    // TODO: Consider replacing with .to_bytes
+    // cannot use as_bytes
     let to_decrypt = hex::decode(encrypted_foldername).unwrap();
 
     // Prepare the generic arrays and aead
