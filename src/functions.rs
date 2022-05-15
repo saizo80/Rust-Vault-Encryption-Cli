@@ -11,6 +11,8 @@ use std::{
     },
     time::Duration,
 };
+use sha2::{Sha256, Digest};
+use anyhow::anyhow;
 
 // Import functions from other files
 use crate::{
@@ -81,7 +83,7 @@ pub fn argon2_config<'a>() -> argon2::Config<'a> {
 }
 
 ///
-/// Get password input from the user. Will ask twice to make sure passwords
+/// Get password input from the user.
 /// match.
 /// # Arguments
 /// - `output: &str`
@@ -90,6 +92,20 @@ pub fn argon2_config<'a>() -> argon2::Config<'a> {
 /// Returns `String`
 /// 
 pub fn get_password_input(output: &str) -> Result<String, anyhow::Error> {
+    let password1 = rpassword::prompt_password(output).unwrap();
+    Ok(password1)
+}
+
+///
+/// Get password input from the user. Will ask twice to make sure passwords
+/// match.
+/// # Arguments
+/// - `output: &str`
+///     - Will output this when asking for the password
+/// 
+/// Returns `String`
+/// 
+pub fn get_password_double(output: &str) -> Result<String, anyhow::Error> {
     let mut _password1 = String::new();
     loop {
         _password1 = rpassword::prompt_password(output).unwrap();
@@ -292,7 +308,8 @@ pub fn read_config_file(config_path: &str) -> Vec<Vault> {
                 // datal[1] will be the path 
                 vaults.push(
                     Vault::new(String::from(datal[0]), 
-                    String::from(datal[1]))
+                    String::from(datal[1]),
+                    hex::decode(datal[2]).unwrap()),
                 )
             }  
         }
@@ -331,18 +348,21 @@ pub fn create_vault(
     
     let path_to_create = get_input("Enter path for new vault: ")?;
     let name = get_input("Enter name for new vault: ")?;
-    let password = get_password_input("Enter password for vault: ")?;
+    let password = get_password_double("Enter password for vault: ")?;
+
+    // Get sha256 hash of password for storage
+    let hashed_password = hash_password_string(password.clone())?;
 
     // Format string with masterfile and add new vault to list
     if path_to_create.ends_with('/') {
         let master_file_path = format!("{}masterfile.e", &path_to_create);
         vaults.push(
-            Vault::new(name.clone(), master_file_path)
+            Vault::new(name.clone(), master_file_path, hex::decode(hashed_password.clone())?)
         );
     } else {
         let master_file_path = format!("{}/masterfile.e", &path_to_create);
         vaults.push(
-            Vault::new(name.clone(), master_file_path)
+            Vault::new(name.clone(), master_file_path, hex::decode(hashed_password.clone())?)
         );
     }
 
@@ -354,8 +374,9 @@ pub fn create_vault(
         .write(true)
         .append(true)
         .open(&config_path)?;
-    config_file.write_all(format!("{},{}/masterfile.e\n", name, path_to_create).as_bytes())?;
-    
+    config_file.write_all(format!("{},{}/masterfile.e,{}\n",
+        name, path_to_create, hashed_password).as_bytes())?;
+
     Ok(())
 }
 
@@ -373,12 +394,21 @@ pub fn create_vault(
 pub fn unlock_lock_vault(
     masterfile_path: String,
     force_encrypt: bool,
+    stored_hash: Vec<u8>,
 ) -> Result<(), anyhow::Error> {
+    // Get password and hash
+    let password = get_password_input("Enter vault password: ")?;
+    let hashed_password = hash_password_vec(password.clone())?;
+
+    // Check if hash matches what is stored
+    if hashed_password != stored_hash {
+        return Err(anyhow!("Password does not match stored password"));
+    }
     // Read in the data from the masterfile and store in a data structure
     let masterfile_data = 
         masterfile::read_masterfile(&masterfile_path, 
-        &get_password_input("Enter vault password: ")?)?;
-    
+        &password)?;
+
     // Get the top of the directory tree
     let top_dir_path = masterfile_path.strip_suffix("/masterfile.e").unwrap().to_string();
     
@@ -483,8 +513,27 @@ pub fn write_vaults(
     // Write all the data in the vaults
     for i in vaults {
         config_file.write_all(format!
-            ("{},{}", i.name, i.master_file_path)
+            ("{},{},{}", i.name, i.master_file_path, 
+            hex::encode(i.hashed_password.clone()))
             .as_bytes())?;
     }
     Ok(())
+}
+
+pub fn hash_password_string (
+    password: String,
+) -> Result<String, anyhow::Error> {
+    // Get hash of password
+    let mut hasher = Sha256::new();
+    hasher.update(password.as_bytes());
+    Ok(hex::encode(hasher.finalize()))
+}
+
+pub fn hash_password_vec (
+    password: String,
+) -> Result<Vec<u8>, anyhow::Error> {
+    // Get hash of password
+    let mut hasher = Sha256::new();
+    hasher.update(password.as_bytes());
+    Ok(hex::decode(hex::encode(hasher.finalize()))?)
 }
