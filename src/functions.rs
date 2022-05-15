@@ -37,11 +37,13 @@ pub fn get_input(output: &str) -> Result<String, anyhow::Error> {
     let mut line = String::new();
     
     // Print out the passed value
-    println!("{} ", output);
+    println!("{}", output);
+    print!("> ");
+    io::stdout().flush()?;
 
     // Read input into the line variable and call the 
     // function to clean the input and return the result
-    std::io::stdin().read_line(&mut line).unwrap();
+    std::io::stdin().read_line(&mut line)?;
     clean_input(line)
 }
 
