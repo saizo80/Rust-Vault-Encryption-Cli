@@ -145,10 +145,10 @@ fn vault_unlock_stage(
                 // if passed true the function will encrypt the vault
                 // if passed false the function will decrypt the vault
                 functions::unlock_lock_vault
-                    (i.vault_ref.master_file_path.clone(), true)?;
+                    (i.vault_ref.master_file_path.clone(), true, i.vault_ref.hashed_password.clone())?;
             } else if i.vault_ref.status == 0 {
                 functions::unlock_lock_vault
-                    (i.vault_ref.master_file_path.clone(), false)?;
+                    (i.vault_ref.master_file_path.clone(), false, i.vault_ref.hashed_password.clone())?;
             }
         }
     }
@@ -209,7 +209,7 @@ fn vault_remove_stage(
     println!("##Delete Vault##");
 
     // Initialize a counter
-    let mut counter = 1;
+    let mut counter: u8 = 1;
 
     // Define statuses
     let LOCKED = "LOCKED".to_string().green();
@@ -245,10 +245,11 @@ fn vault_remove_stage(
     if confirmation.to_lowercase() == "y" {
         // Get a copy of the master file path
         let master_file_path = vaults[index as usize].master_file_path.clone();
+        let hashed_password = vaults[index as usize].hashed_password.clone();
 
         // Unlock the vault if locked
         if vaults[index as usize].status == 0 {
-            functions::unlock_lock_vault(master_file_path.clone(), false)?;
+            functions::unlock_lock_vault(master_file_path.clone(), false, hashed_password)?;
         }
 
         // Remove the master file, remove the vault from the array, and 
@@ -288,12 +289,13 @@ fn add_existing_vault(
 
     let path_to_create = functions::get_input("Enter path of masterfile.e: ")?;
     let name = functions::get_input("Enter name for new vault: ")?;
+    let password = functions::get_password_double("Enter Vault password: ")?;
 
     // Check that the path is correct and the size of the file is correct (192 bytes)
     if path_to_create.ends_with("masterfile.e") && fs::metadata(path_to_create.clone())?.len() == 192 {
         // Push the new info to the vaults array and write the array to the config file
         vaults.push(
-            Vault::new(name, path_to_create)
+            Vault::new(name, path_to_create, functions::hash_password_vec(password)?)
         );
         functions::write_vaults(vaults, config_path)?;
     } else {
