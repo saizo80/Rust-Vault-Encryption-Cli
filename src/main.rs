@@ -131,8 +131,8 @@ fn vault_unlock_stage(
     }
 
     // Return to main menu check
-    println!("[{}] Return to Main Menu", counter);
-    let input = functions::get_input(">")?;
+    //println!("[{}] Return to Main Menu", counter);
+    let input = functions::get_input(&format!("[{}] Return to Main Menu", counter)[..])?;
     if input == counter.to_string() || input.to_lowercase() == "q" 
         || input.to_lowercase() == "quit" {
             return Ok(())
@@ -225,10 +225,9 @@ fn vault_remove_stage(
         else {println!("[{}] {} - {}", counter, i.name, UNKNOWN);}
         counter += 1;
     }
-    println!("[{}] Return to Main Menu", counter);
 
     // Get input and confirmation for deletion
-    let input = functions::get_input(">")?;
+    let input = functions::get_input(&format!("[{}] Return to Main Menu", counter)[..])?;
 
     // Check for return to Main Menu
     if input == counter.to_string() || input.to_lowercase() == "q"
