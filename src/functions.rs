@@ -346,7 +346,6 @@ pub fn create_vault(
             return Ok(())
     }
     
-    let path_to_create = get_input("Enter path for new vault: ")?;
     let name = get_input("Enter name for new vault: ")?;
     let password = get_password_double("Enter password for vault: ")?;
 

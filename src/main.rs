@@ -137,7 +137,7 @@ fn vault_unlock_stage(
         || input.to_lowercase() == "quit" {
             return Ok(())
     }
-    let input = functions::get_input(">")?;
+
     for i in temp {
         if i.index == input {
             if i.vault_ref.status == 1 {
@@ -236,7 +236,6 @@ fn vault_remove_stage(
             return Ok(())
     }
 
-    let input = functions::get_input(">")?;
     let index = input.parse::<i32>().unwrap() - 1;
     let confirmation = functions::get_input(&format!
         ("The vault {} will be unlocked if locked and deleted. Are you sure this is what you want? [Y/N]", 
@@ -287,7 +286,6 @@ fn add_existing_vault(
         return Ok(())
     }
 
-    let path_to_create = functions::get_input("Enter path of masterfile.e: ")?;
     let name = functions::get_input("Enter name for new vault: ")?;
     let password = functions::get_password_double("Enter Vault password: ")?;
 
