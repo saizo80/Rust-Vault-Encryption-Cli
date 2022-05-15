@@ -28,6 +28,7 @@ pub mod vault {
         pub master_file_path: String,
         pub path: String,
         pub status: u8, 
+        pub hashed_password: Vec<u8>,
     }
     
     impl Vault{
@@ -44,6 +45,7 @@ pub mod vault {
         pub fn new(
             name: String, 
             master_file_path: String,
+            hashed_password: Vec<u8>,
         ) -> Vault{
             // Strip suffix to get the top dir path
             let path: String = String::from(master_file_path
@@ -57,6 +59,7 @@ pub mod vault {
                 master_file_path,
                 path,
                 status,
+                hashed_password,
             }
         }
 
@@ -73,7 +76,7 @@ pub mod vault {
                      self.name)[..])?;
                 if input.to_lowercase() == "y" {
                     functions::unlock_lock_vault
-                        (self.master_file_path.clone(), true)?;
+                        (self.master_file_path.clone(), true, self.hashed_password.clone())?;
                     self.check_status()?;
                 }
             }
