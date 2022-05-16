@@ -12,7 +12,7 @@ Also this is just a personal project to learn the rust language. Please do **not
 
 - First, install rustc and cargo using this script -> `curl https://sh.rustup.rs -sSf | sh` 
   - **Note, script is taken straight from the rust website so it should be safe to run, but as always please verify all script files before running.**
-- After installing rust, the binary of this program can be installed simply by running `cargo install --git https://github.com/saizo80/Rust-Vault-Encryption.git`
+- After installing rust, the binary of this program can be installed simply by running `cargo install --git https://github.com/saizo80/Rust-Vault-Encryption-Cli.git`
 - Then simply type `rusty-vault` in a terminal and the program will run
 
 ## Usage
